@@ -171,4 +171,21 @@ class ContextDiscriminator(nn.Module):
     def __init__(self, local_in_shape, global_in_shape, architecture='celeba'):
         super(ContextDiscriminator, self).__init__()
         self.arc = architecture
-        self.input_shapes
+        self.input_shapes = [local_in_shape, global_in_shape]
+        self.out_shape = (1,)
+        self.local_D = LocalDiscriminator(local_in_shape)
+        self.global_D = GlobalDiscriminator(global_in_shape)
+
+        self.concat = Concatenate(-1)
+
+        self.layers = nn.Sequential(
+            nn.Linear(self.local_D.output_shape[-1] + self.global_D.out_shape[-1], 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        local_x, global_x = x
+        local_x = self.local_D(local_x)
+        global_x = self.global_D(global_x)
+        to_ret = self.concat([local_x, global_x])
+        return self.layers(to_ret)
