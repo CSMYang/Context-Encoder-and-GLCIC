@@ -2,8 +2,9 @@ import json
 import os
 import random
 from torch.utils.data import DataLoader
-from torch.optim import Adadelta, Adam
+from torch.optim import Adadelta
 from torch.nn import BCELoss, DataParallel
+from torch.nn.functional import mse_loss
 from torchvision.utils import save_image
 from PIL import Image
 import torchvision.transforms as transforms
@@ -13,7 +14,6 @@ import cv2
 from tqdm import tqdm
 from model import CompletionNetwork, ContextDiscriminator
 from dataset import ImageDataset
-from losses import completion_network_loss
 
 
 def gen_input_mask(shape, hole_size, hole_area=None, max_holes=1):
@@ -175,13 +175,17 @@ def poisson_blend(input, output, mask):
     return ret
 
 
+def completion_network_loss(input, output, mask):
+    return mse_loss(output * mask, input * mask)
+
+
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
 
-def train(args, init_model_cn, init_model_cd):
+def train(args, pretrained_cn, pretrained_cd):
     # ================================================
     # Preparation
     # ================================================
@@ -194,19 +198,19 @@ def train(args, init_model_cn, init_model_cd):
             os.makedirs(os.path.join(args.result_dir, phase))
 
     # load dataset
-    trnsfm = transforms.Compose([
+    transformed = transforms.Compose([
         transforms.Resize(args.cn_input_size),
         transforms.RandomCrop((args.cn_input_size, args.cn_input_size)),
         transforms.ToTensor(),
     ])
-    print('loading dataset... (it may take a few minutes)')
+    print('loading dataset...')
     train_dset = ImageDataset(
         os.path.join(args.data_dir, 'train'),
-        trnsfm,
+        transformed,
         recursive_search=args.recursive_search)
     test_dset = ImageDataset(
         os.path.join(args.data_dir, 'test'),
-        trnsfm,
+        transformed,
         recursive_search=args.recursive_search)
     train_loader = DataLoader(
         train_dset,
@@ -257,9 +261,9 @@ def train(args, init_model_cn, init_model_cd):
     # ================================================
     # load completion network
     model_cn = CompletionNetwork()
-    if init_model_cn is not None:
+    if pretrained_cn is not None:
         model_cn.load_state_dict(torch.load(
-            args.init_model_cn))
+            args.pretrained_cn))
     if args.data_parallel:
         model_cn = DataParallel(model_cn)
     if args.gpu:
@@ -362,9 +366,8 @@ def train(args, init_model_cn, init_model_cd):
         local_input_shape=(3, args.ld_input_size, args.ld_input_size),
         global_input_shape=(3, args.cn_input_size, args.cn_input_size),
         arc=args.arc)
-    if init_model_cd is not None:
-        model_cd.load_state_dict(torch.load(
-            args.init_model_cd))
+    if pretrained_cd is not None:
+        model_cd.load_state_dict(torch.load(args.pretrained_cd))
     if args.data_parallel:
         model_cd = DataParallel(model_cd)
     if args.gpu:
@@ -655,7 +658,7 @@ if __name__ == '__main__':
         "alpha": 4e-4,
         "arc": 'celeba',  # 'celeba' or 'places2'
     }
-    init_model_cn = None
-    init_model_cd = None
+    pretrained_cn = None
+    _model_cd = None
     args.update(args_dict)
-    train(args, init_model_cn, init_model_cd)
+    train(args, pretrained_cn, pretrained_cd)
