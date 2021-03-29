@@ -169,7 +169,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def train_p1(args, pretrained_cn, train_loader, mpv, test_set):
+def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
     """
     Trainning Phase 1: train completion network
     """
@@ -178,7 +178,7 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set):
     model_cn = CompletionNetwork()
     # load pre-trained model
     if pretrained_cn:
-        model_cn.load_state_dict(torch.load(args.pretrained_cn))
+        model_cn.load_state_dict(torch.load(pretrained_cn))
     if args.data_parallel:
         model_cn = torch.nn.DataParallel(model_cn)
     if args.gpu:
@@ -191,12 +191,10 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set):
     while pbar.n < args.steps_1:
         for x in train_loader:
             # forward
+            x_hole_area = gen_hole_area((args.ld_input_size, args.ld_input_size),
+                                        (x.shape[3], x.shape[2]))
             mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                                  hole_size=((args.hole_min_w, args.hole_max_w),
-                                             (args.hole_min_h, args.hole_max_h)),
-                                  hole_area=gen_hole_area((args.ld_input_size,
-                                                           args.ld_input_size),
-                                                          (x.shape[3], x.shape[2])),
+                                  hole_size=img_hole_size, hole_area=x_hole_area,
                                   max_holes=args.max_holes)
             if args.gpu:
                 x = x.cuda()
@@ -221,13 +219,11 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set):
                 # test
                 if pbar.n % args.snaperiod_1 == 0:
                     model_cn.eval()
-                    x = sample_random_batch(test_set,
-                                            batch_size=args.num_test_completions)
+                    x = sample_random_batch(test_set, batch_size=args.num_test_completions)
+                    x_hole_area = gen_hole_area((args.ld_input_size, args.ld_input_size),
+                                                (x.shape[3], x.shape[2]))
                     mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                                          hole_size=((args.hole_min_w, args.hole_max_w),
-                                                     (args.hole_min_h, args.hole_max_h)),
-                                          hole_area=gen_hole_area((args.ld_input_size, args.ld_input_size),
-                                                                  (x.shape[3], x.shape[2])),
+                                          hole_size=img_hole_size, hole_area=x_hole_area,
                                           max_holes=args.max_holes)
                     if args.gpu:
                         x = x.cuda()
@@ -254,7 +250,7 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set):
     return model_cn, opt_cn
 
 
-def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn):
+def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hole_size):
     """
     Training Phase 2: train context discriminator
     """
@@ -263,7 +259,7 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn):
                                     global_in_shape=(3, args.cn_input_size, args.cn_input_size),
                                     architecture=args.arc)
     if pretrained_cd:
-        model_cd.load_state_dict(torch.load(args.pretrained_cd))
+        model_cd.load_state_dict(torch.load(pretrained_cd))
     if args.data_parallel:
         model_cd = torch.nn.DataParallel(model_cd)
     if args.gpu:
@@ -280,9 +276,8 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn):
             hole_area_fake = gen_hole_area((args.ld_input_size, args.ld_input_size),
                                            (x.shape[3], x.shape[2]))
             mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                                  hole_size=((args.hole_min_w, args.hole_max_w),
-                                             (args.hole_min_h, args.hole_max_h)),
-                                  hole_area=hole_area_fake, max_holes=args.max_holes)
+                                  hole_size=img_hole_size, hole_area=hole_area_fake,
+                                  max_holes=args.max_holes)
             fake = torch.zeros((len(x), 1))
             if args.gpu:
                 x = x.cuda()
@@ -330,11 +325,10 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn):
                     model_cn.eval()
                     with torch.no_grad():
                         x = sample_random_batch(test_set, batch_size=args.num_test_completions)
+                        x_hole_area = gen_hole_area((args.ld_input_size, args.ld_input_size),
+                                                    (x.shape[3], x.shape[2]))
                         mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                                              hole_size=((args.hole_min_w, args.hole_max_w),
-                                                         (args.hole_min_h, args.hole_max_h)),
-                                              hole_area=gen_hole_area((args.ld_input_size, args.ld_input_size),
-                                                                      (x.shape[3], x.shape[2])),
+                                              hole_size=img_hole_size, hole_area=x_hole_area,
                                               max_holes=args.max_holes)
                         if args.gpu:
                             x = x.cuda()
@@ -390,9 +384,8 @@ def train(args, pretrained_cn, pretrained_cd):
     mpv = np.zeros(shape=(3,))
     pbar = tqdm(total=len(train_set.images),
                 desc='computing mean pixel value of training dataset...')
-    for imgpath in train_set.images:
-        img = Image.open(imgpath)
-        x = np.array(img) / 255.
+    for img in train_set.images:
+        x = np.array(Image.open(img)) / 255.
         mpv += x.mean(axis=(0, 1))
         pbar.update()
     mpv /= len(train_set.images)
@@ -417,11 +410,13 @@ def train(args, pretrained_cn, pretrained_cd):
         mpv = mpv.cuda()
         alpha = alpha.cuda()
 
+    img_hole_size = ((args.hole_min_w, args.hole_max_w), (args.hole_min_h, args.hole_max_h))
+
     # Phase 1
-    model_cn, opt_cn = train_p1(args, pretrained_cn, train_loader, mpv, test_set)
+    model_cn, opt_cn = train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size)
 
     # Phase 2
-    model_cd, opt_cd = train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn)
+    model_cd, opt_cd = train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hole_size)
 
     # ================================================
     # Training Phase 3
@@ -435,9 +430,8 @@ def train(args, pretrained_cn, pretrained_cd):
             hole_area_fake = gen_hole_area((args.ld_input_size, args.ld_input_size),
                                            (x.shape[3], x.shape[2]))
             mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                                  hole_size=((args.hole_min_w, args.hole_max_w),
-                                             (args.hole_min_h, args.hole_max_h)),
-                                  hole_area=hole_area_fake, max_holes=args.max_holes)
+                                  hole_size=img_hole_size, hole_area=hole_area_fake,
+                                  max_holes=args.max_holes)
 
             # fake forward
             fake = torch.zeros((len(x), 1))
@@ -500,11 +494,10 @@ def train(args, pretrained_cn, pretrained_cd):
                 if pbar.n % args.snaperiod_3 == 0:
                     model_cn.eval()
                     x = sample_random_batch(test_set, batch_size=args.num_test_completions)
+                    x_hole_area = gen_hole_area((args.ld_input_size, args.ld_input_size),
+                                                (x.shape[3], x.shape[2]))
                     mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                                          hole_size=((args.hole_min_w, args.hole_max_w),
-                                                     (args.hole_min_h, args.hole_max_h)),
-                                          hole_area=gen_hole_area((args.ld_input_size, args.ld_input_size),
-                                                                  (x.shape[3], x.shape[2])),
+                                          hole_size=img_hole_size, hole_area=x_hole_area,
                                           max_holes=args.max_holes)
                     if args.gpu:
                         x = x.cuda()
