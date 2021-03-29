@@ -18,17 +18,12 @@ class ImageDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, index, color_format='RGB'):
-        img = Image.open(self.images[index])
-        img = img.convert(color_format)
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        img = (Image.open(self.images[index])).convert(color_format)
+        return self.transform(img) if self.transform else img
 
     def __is_imgfile(self, filepath):
         filepath = os.path.expanduser(filepath)
-        if os.path.isfile(filepath) and imghdr.what(filepath):
-            return True
-        return False
+        return os.path.isfile(filepath) and imghdr.what(filepath)
 
     def __load_images_from_dir(self, dirpath, walk=False):
         images = []
