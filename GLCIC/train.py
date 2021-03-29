@@ -635,8 +635,8 @@ if __name__ == '__main__':
     args = AttrDict()
     args_dict = {
         "gpu": True,
-        "data_dir": ".//datasets//dataset//",
-        "result_dir": ".//results//result//",
+        "data_dir": "./datasets/dataset/",
+        "result_dir": "./results/result/",
         "data_parallel": True,
         "recursive_search": False,
         "steps_1": 90000,
@@ -659,6 +659,6 @@ if __name__ == '__main__':
         "arc": 'celeba',  # 'celeba' or 'places2'
     }
     pretrained_cn = None
-    _model_cd = None
+    pretrained_cd = None
     args.update(args_dict)
     train(args, pretrained_cn, pretrained_cd)
