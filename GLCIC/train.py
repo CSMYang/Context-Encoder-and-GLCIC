@@ -363,9 +363,9 @@ def train(args, pretrained_cn, pretrained_cd):
     # ================================================
     # load context discriminator
     model_cd = ContextDiscriminator(
-        local_input_shape=(3, args.ld_input_size, args.ld_input_size),
-        global_input_shape=(3, args.cn_input_size, args.cn_input_size),
-        arc=args.arc)
+        local_in_shape=(3, args.ld_input_size, args.ld_input_size),
+        global_in_shape=(3, args.cn_input_size, args.cn_input_size),
+        architecture=args.arc)
     if pretrained_cd is not None:
         model_cd.load_state_dict(torch.load(args.pretrained_cd))
     if args.data_parallel:
