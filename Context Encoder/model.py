@@ -7,8 +7,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
-class Generator(nn.module):
-    def __init__(self, args):
+class Generator(nn.Module):
+    def __init__(self, args=None):
         super(Generator, self).__init__()
 
         # input size is image size of 3 x width x height
@@ -36,7 +36,7 @@ class Generator(nn.module):
             nn.LeakyReLU(0.2, inplace=True),
             # channel wise fully connected layer for the bottle neck layer  with stride 1 convolution
             # 512 -> 4000
-            nn.Conv2d(512, 4000, stride=1, ),
+            nn.Conv2d(512, 4000, kernel_size=1),
             nn.BatchNorm2d(4000)
 
         )
@@ -60,7 +60,7 @@ class Generator(nn.module):
             # 64 -> 3
             # nn.ConvTranspose2d(),
             nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1),
-            nn.Tanh(inplace=True)
+            nn.Tanh()
         )
 
     def forward(self, x):
@@ -69,9 +69,9 @@ class Generator(nn.module):
         return x
 
 
-class Discriminator(nn.module):
-    def __init__(self, args):
-        super(Generator, self).__init__()
+class Discriminator(nn.Module):
+    def __init__(self, args=None):
+        super(Discriminator, self).__init__()
         self.layers = nn.Sequential(
             # 3 -> 64
             nn.Conv2d(3, 64, kernel_size=4, stride=2, padding=1),
