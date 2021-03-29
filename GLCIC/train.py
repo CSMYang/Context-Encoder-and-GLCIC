@@ -149,8 +149,8 @@ def poisson_blend(input, output, mask):
     num_samples = input.shape[0]
     ret = []
     for i in range(num_samples):
-        dstimg = transforms.functional.to_pil_image(input[i])
-        dstimg = np.array(dstimg)[:, :, [2, 1, 0]]
+        dst_img = transforms.functional.to_pil_image(input[i])
+        dst_img = np.array(dst_img)[:, :, [2, 1, 0]]
         srcimg = transforms.functional.to_pil_image(output[i])
         srcimg = np.array(srcimg)[:, :, [2, 1, 0]]
         msk = transforms.functional.to_pil_image(mask[i])
@@ -165,8 +165,8 @@ def poisson_blend(input, output, mask):
         xmin, xmax = min(xs), max(xs)
         ymin, ymax = min(ys), max(ys)
         center = ((xmax + xmin) // 2, (ymax + ymin) // 2)
-        dstimg = cv2.inpaint(dstimg, msk[:, :, 0], 1, cv2.INPAINT_TELEA)
-        out = cv2.seamlessClone(srcimg, dstimg, msk, center, cv2.NORMAL_CLONE)
+        dst_img = cv2.inpaint(dst_img, msk[:, :, 0], 1, cv2.INPAINT_TELEA)
+        out = cv2.seamlessClone(srcimg, dst_img, msk, center, cv2.NORMAL_CLONE)
         out = out[:, :, [2, 1, 0]]
         out = transforms.functional.to_tensor(out)
         out = torch.unsqueeze(out, dim=0)
@@ -363,9 +363,9 @@ def train(args, pretrained_cn, pretrained_cd):
     # ================================================
     # load context discriminator
     model_cd = ContextDiscriminator(
-        local_input_shape=(3, args.ld_input_size, args.ld_input_size),
-        global_input_shape=(3, args.cn_input_size, args.cn_input_size),
-        arc=args.arc)
+        local_in_shape=(3, args.ld_input_size, args.ld_input_size),
+        global_in_shape=(3, args.cn_input_size, args.cn_input_size),
+        architecture=args.arc)
     if pretrained_cd is not None:
         model_cd.load_state_dict(torch.load(args.pretrained_cd))
     if args.data_parallel:
