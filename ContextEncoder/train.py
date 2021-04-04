@@ -22,7 +22,7 @@ args_dict = {
     'beta1': 0.5,
     'beta2': 0.999,
     'batchSize': 32,
-    'epoches': 50,
+    'epoches': 10,
     'crop_size': 50
 }
 
@@ -82,7 +82,7 @@ Dis_optimizer = torch.optim.Adam(
     Discriminator.parameters(), lr=args_dict["lr"], betas=(args_dict["beta1"], args_dict["beta2"]))
 
 
-def save_sample_image(Generator, real_image, iteration):
+def save_sample_image(Generator, real_image, iteration, epoch):
 
     SavingImage = real_image
     fake_center = Generator(SavingImage)
@@ -94,9 +94,7 @@ def save_sample_image(Generator, real_image, iteration):
     SavingImage[:, leftImageCenter:leftImageCenter+fake_center_size,
                 leftImageCenter: leftImageCenter+fake_center_size] = fake_center[0][:, :, :]
     path = os.path.join("ContextEncoder\Result",
-                        'sample-{:06d}.png'.format(iteration))
-    print(SavingImage.shape)
-
+                        'sample-{:06d} -{:06d}.png'.format(iteration, epoch))
     result_image = torch.ones((128, 128, 3))
     result_image[:, :, 0] = SavingImage[0]
     result_image[:, :, 1] = SavingImage[1]
@@ -154,11 +152,11 @@ if __name__ == '__main__':
                   "G total loss", G_total_loss.item())
             # save check point
             if(i % 100 == 0):
-                save_sample_image(Generator, real_image, i)
+                save_sample_image(Generator, real_image, i, epoch)
+            Gpath = os.path.join('ContextEncoder\model\Generator',
+                                 'Generator_{0}.pth'.format(epoch))
+            Dpath = os.path.join('ContextEncoder\model\Discriminator',
+                                 'Discriminator_{0}.pth'.format(epoch))
 
-        torch.save({'epoch': epoch+1,
-                    'state_dict': Generator.state_dict()},
-                   'model/netG_streetview.pth')
-        torch.save({'epoch': epoch+1,
-                    'state_dict': Discriminator.state_dict()},
-                   'model/netlocalD.pth')
+        torch.save(Generator.state_dict(), Gpath)
+        torch.save(Discriminator.state_dict(), Dpath)
