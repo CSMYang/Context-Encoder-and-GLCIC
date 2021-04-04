@@ -59,7 +59,7 @@ class Generator(nn.Module):
             nn.ReLU(inplace=True),
             # 64 -> 3
             # nn.ConvTranspose2d(),
-            nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1),
+            nn.ConvTranspose2d(64, 3, kernel_size=3, stride=1, padding=1),
             nn.Tanh()
         )
 
@@ -95,4 +95,4 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, x):
-        return self.layer(x)
+        return self.layers(x)
