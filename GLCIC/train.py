@@ -160,6 +160,9 @@ def poisson_blend(input, output, mask):
 
 
 def completion_network_loss(input, output, mask):
+    """
+    The loss function for completion_network
+    """
     return mse_loss(output * mask, input * mask)
 
 
