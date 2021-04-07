@@ -90,6 +90,7 @@ class CompletionNetwork(nn.Module):
             nn.Conv2d(32, 3, 3, 1, 1),
             nn.Sigmoid()
         )
+        self.loss = torch.nn.MSELoss()
 
     def forward(self, x):
         return self.layers(x)
@@ -182,6 +183,7 @@ class ContextDiscriminator(nn.Module):
             nn.Linear(self.local_D.output_shape[-1] + self.global_D.out_shape[-1], 1),
             nn.Sigmoid()
         )
+        self.loss = torch.nn.BCELoss()
 
     def forward(self, x):
         local_x, global_x = x

@@ -6,7 +6,6 @@ import os
 import random
 from torch.utils.data import DataLoader
 from torch.optim import Adadelta
-from torch.nn.functional import mse_loss
 from torchvision.utils import save_image
 from PIL import Image
 from torchvision.transforms.functional import to_pil_image, to_tensor
@@ -19,7 +18,7 @@ from model import CompletionNetwork, ContextDiscriminator
 from dataset import ImageDataset
 
 
-def gen_input_mask(shape, hole_size, hole_area=None, max_holes=1):
+def generate_mask(shape, hole_size, hole_area=None, max_holes=1):
     """
     * inputs:
         - shape (sequence, required):
@@ -66,7 +65,7 @@ def gen_input_mask(shape, hole_size, hole_area=None, max_holes=1):
     return mask
 
 
-def gen_hole_area(size, mask_size):
+def generate_area(size, mask_size):
     """
     * inputs:
         - size (sequence, required)
@@ -76,7 +75,7 @@ def gen_hole_area(size, mask_size):
                 A sequence of length 2 (W, H) is assumed.
                 (W, H) is the size of input mask.
     * returns:
-            A sequence used for the input argument 'hole_area' for function 'gen_input_mask'.
+            A sequence used for the input argument 'hole_area' for function 'generate_mask'.
     """
     mask_w, mask_h = mask_size
     harea_w, harea_h = size
@@ -135,7 +134,7 @@ def poisson_blend(input, output, mask):
     """
     input, output, mask = input.clone(), output.clone(), mask.clone()
     mask = torch.cat((mask, mask, mask), dim=1)  # convert to 3-channel format
-    ret = []
+    result = []
     for i in range(input.shape[0]):
         dst_img = np.array(to_pil_image(input[i]))[:, :, [2, 1, 0]]
         srcimg = np.array(to_pil_image(output[i]))[:, :, [2, 1, 0]]
@@ -147,23 +146,35 @@ def poisson_blend(input, output, mask):
                 if msk[j, k, 0] == 255:
                     ys.append(j)
                     xs.append(k)
-        xmin, xmax = min(xs), max(xs)
-        ymin, ymax = min(ys), max(ys)
-        center = ((xmax + xmin) // 2, (ymax + ymin) // 2)
+        center = ((min(xs) + max(xs)) // 2, (min(ys) + max(ys)) // 2)
         dst_img = cv2.inpaint(dst_img, msk[:, :, 0], 1, cv2.INPAINT_TELEA)
         out = to_tensor(cv2.seamlessClone(srcimg, dst_img, msk, center,
                                 cv2.NORMAL_CLONE)[:, :, [2, 1, 0]])
-        out = torch.unsqueeze(out, dim=0)
-        ret.append(out)
-    ret = torch.cat(ret, dim=0)
-    return ret
+        result.append(torch.unsqueeze(out, dim=0))
+    return torch.cat(result, dim=0)
 
 
-def completion_network_loss(input, output, mask):
+def compute_mpv(train_set):
     """
-    The loss function for completion_network
+    Compute mpv for training.
     """
-    return mse_loss(output * mask, input * mask)
+    mpv = np.zeros(shape=(3,))
+    pbar = tqdm(total=len(train_set.images),
+                desc='computing mean pixel value of training dataset...')
+    for img in train_set.images:
+        x = np.array(Image.open(img)) / 255.
+        mpv += x.mean(axis=(0, 1))
+        pbar.update()
+    mpv /= len(train_set.images)
+    pbar.close()
+    return mpv
+
+
+# def completion_network_loss(input, output, mask):
+#     """
+#     The loss function for completion_network
+#     """
+#     return mse_loss(output * mask, input * mask)
 
 
 class AttrDict(dict):
@@ -194,9 +205,9 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
     while pbar.n < args.steps_1:
         for x in train_loader:
             # forward
-            x_hole_area = gen_hole_area((args.ld_input_size, args.ld_input_size),
+            x_hole_area = generate_area((args.ld_input_size, args.ld_input_size),
                                         (x.shape[3], x.shape[2]))
-            mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+            mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
                                   hole_size=img_hole_size, hole_area=x_hole_area,
                                   max_holes=args.max_holes)
             if args.gpu:
@@ -205,7 +216,7 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
             x_mask = x - x * mask + mpv * mask
             input = torch.cat((x_mask, mask), dim=1)
             output = model_cn(input)
-            loss = completion_network_loss(x, output, mask)
+            loss = model_cn.loss(x*mask, output*mask)
 
             # backward
             loss.backward()
@@ -223,9 +234,9 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
                 if pbar.n % args.snaperiod_1 == 0:
                     model_cn.eval()
                     x = sample_random_batch(test_set, batch_size=args.num_test_completions)
-                    x_hole_area = gen_hole_area((args.ld_input_size, args.ld_input_size),
+                    x_hole_area = generate_area((args.ld_input_size, args.ld_input_size),
                                                 (x.shape[3], x.shape[2]))
-                    mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+                    mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
                                           hole_size=img_hole_size, hole_area=x_hole_area,
                                           max_holes=args.max_holes)
                     if args.gpu:
@@ -268,7 +279,6 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
     if args.gpu:
         model_cd = model_cd.cuda()
     opt_cd = Adadelta(model_cd.parameters())
-    bceloss = torch.nn.BCELoss()
 
     # training
     cnt_bdivs = 0
@@ -276,9 +286,9 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
     while pbar.n < args.steps_2:
         for x in train_loader:
             # fake forward
-            hole_area_fake = gen_hole_area((args.ld_input_size, args.ld_input_size),
+            hole_area_fake = generate_area((args.ld_input_size, args.ld_input_size),
                                            (x.shape[3], x.shape[2]))
-            mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+            mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
                                   hole_size=img_hole_size, hole_area=hole_area_fake,
                                   max_holes=args.max_holes)
             fake = torch.zeros((len(x), 1))
@@ -295,18 +305,17 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                 input_gd_fake = input_gd_fake.cuda()
                 input_ld_fake = input_ld_fake.cuda()
             output_fake = model_cd((input_ld_fake, input_gd_fake))
-            loss_fake = bceloss(output_fake, fake)
+            loss_fake = model_cd.loss(output_fake, fake)
 
             # real forward
-            hole_area_real = gen_hole_area((args.ld_input_size, args.ld_input_size),
+            hole_area_real = generate_area((args.ld_input_size, args.ld_input_size),
                                            (x.shape[3], x.shape[2]))
             real = torch.ones((len(x), 1))
             if args.gpu:
                 real = real.cuda()
-            input_gd_real = x
-            input_ld_real = crop(input_gd_real, hole_area_real)
-            output_real = model_cd((input_ld_real, input_gd_real))
-            loss_real = bceloss(output_real, real)
+            input_ld_real = crop(x, hole_area_real)
+            output_real = model_cd((input_ld_real, x))
+            loss_real = model_cd.loss(output_real, real)
 
             # reduce
             loss = (loss_fake + loss_real) / 2.
@@ -328,9 +337,9 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                     model_cn.eval()
                     with torch.no_grad():
                         x = sample_random_batch(test_set, batch_size=args.num_test_completions)
-                        x_hole_area = gen_hole_area((args.ld_input_size, args.ld_input_size),
+                        x_hole_area = generate_area((args.ld_input_size, args.ld_input_size),
                                                     (x.shape[3], x.shape[2]))
-                        mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+                        mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
                                               hole_size=img_hole_size, hole_area=x_hole_area,
                                               max_holes=args.max_holes)
                         if args.gpu:
@@ -358,9 +367,9 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
 
 
 def train(args, pretrained_cn, pretrained_cd):
-    # ================================================
-    # Preparation
-    # ================================================
+    """
+    Train the GLCIC.
+    """
 
     # create result directory as needed
     if not os.path.exists(args.result_dir):
@@ -384,17 +393,10 @@ def train(args, pretrained_cn, pretrained_cd):
                               shuffle=True)
 
     # compute mpv (mean pixel value) of training dataset
-    mpv = np.zeros(shape=(3,))
-    pbar = tqdm(total=len(train_set.images),
-                desc='computing mean pixel value of training dataset...')
-    for img in train_set.images:
-        x = np.array(Image.open(img)) / 255.
-        mpv += x.mean(axis=(0, 1))
-        pbar.update()
-    mpv /= len(train_set.images)
-    pbar.close()
     if args.mpv:
         mpv = np.array(args.mpv)
+    else:
+        mpv = compute_mpv(train_set)
 
     # save training config
     mpv_json = []
@@ -415,24 +417,21 @@ def train(args, pretrained_cn, pretrained_cd):
 
     img_hole_size = ((args.hole_min_w, args.hole_max_w), (args.hole_min_h, args.hole_max_h))
 
-    # Phase 1
+    # Phase 1: train CompletionNetwork
     model_cn, opt_cn = train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size)
 
-    # Phase 2
+    # Phase 2: train ContextDiscriminator
     model_cd, opt_cd = train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hole_size)
 
-    # ================================================
-    # Training Phase 3
-    # ================================================
+    # Phase 3: train both generator and discriminator
     cnt_bdivs = 0
     pbar = tqdm(total=args.steps_3)
-    bceloss = torch.nn.BCELoss()
     while pbar.n < args.steps_3:
         for x in train_loader:
             # forward model_cd
-            hole_area_fake = gen_hole_area((args.ld_input_size, args.ld_input_size),
+            hole_area_fake = generate_area((args.ld_input_size, args.ld_input_size),
                                            (x.shape[3], x.shape[2]))
-            mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+            mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
                                   hole_size=img_hole_size, hole_area=hole_area_fake,
                                   max_holes=args.max_holes)
 
@@ -448,18 +447,17 @@ def train(args, pretrained_cn, pretrained_cd):
             input_gd_fake = output_cn.detach()
             input_ld_fake = crop(input_gd_fake, hole_area_fake)
             output_fake = model_cd((input_ld_fake, input_gd_fake))
-            loss_cd_fake = bceloss(output_fake, fake)
+            loss_cd_fake = model_cd.loss(output_fake, fake)
 
             # real forward
-            hole_area_real = gen_hole_area((args.ld_input_size, args.ld_input_size),
+            hole_area_real = generate_area((args.ld_input_size, args.ld_input_size),
                                            (x.shape[3], x.shape[2]))
             real = torch.ones((len(x), 1))
             if args.gpu:
                 real = real.cuda()
-            input_gd_real = x
-            input_ld_real = crop(input_gd_real, hole_area_real)
-            output_real = model_cd((input_ld_real, input_gd_real))
-            loss_cd_real = bceloss(output_real, real)
+            input_ld_real = crop(x, hole_area_real)
+            output_real = model_cd((input_ld_real, x))
+            loss_cd_real = model_cd.loss(output_real, real)
 
             # reduce
             loss_cd = (loss_cd_fake + loss_cd_real) * alpha / 2.
@@ -473,11 +471,10 @@ def train(args, pretrained_cn, pretrained_cd):
                 opt_cd.zero_grad()
 
             # forward model_cn
-            loss_cn_1 = completion_network_loss(x, output_cn, mask)
-            input_gd_fake = output_cn
-            input_ld_fake = crop(input_gd_fake, hole_area_fake)
-            output_fake = model_cd((input_ld_fake, input_gd_fake))
-            loss_cn_2 = bceloss(output_fake, real)
+            loss_cn_1 = model_cn.loss(x*mask, output_cn*mask)
+            input_ld_fake = crop(output_cn, hole_area_fake)
+            output_fake = model_cd((input_ld_fake, output_cn))
+            loss_cn_2 = model_cd.loss(output_fake, real)
 
             # reduce
             loss_cn = (loss_cn_1 + alpha * loss_cn_2) / 2.
@@ -497,9 +494,9 @@ def train(args, pretrained_cn, pretrained_cd):
                 if pbar.n % args.snaperiod_3 == 0:
                     model_cn.eval()
                     x = sample_random_batch(test_set, batch_size=args.num_test_completions)
-                    x_hole_area = gen_hole_area((args.ld_input_size, args.ld_input_size),
+                    x_hole_area = generate_area((args.ld_input_size, args.ld_input_size),
                                                 (x.shape[3], x.shape[2]))
-                    mask = gen_input_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+                    mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
                                           hole_size=img_hole_size, hole_area=x_hole_area,
                                           max_holes=args.max_holes)
                     if args.gpu:
