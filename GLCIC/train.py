@@ -202,6 +202,7 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
     if args.gpu:
         model_cn = model_cn.cuda()
     opt_cn = Adadelta(model_cn.parameters())
+    loss_function = torch.nn.MSELoss()
 
     # training
     cnt_bdivs = 0
@@ -222,7 +223,6 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
             mask = mask.type(torch.float32).cuda()
             input = torch.cat((x_mask, mask), dim=1).cuda()
             output = model_cn(input)
-            loss_function = torch.nn.MSELoss()
             loss = loss_function(x*mask, output*mask)
 
             # backward
@@ -240,33 +240,33 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
                 # test
                 if pbar.n % args.snaperiod_1 == 0:
                     model_cn.eval()
-                    x = sample_random_batch(
-                        test_set, batch_size=args.num_test_completions)
-                    x_hole_area = generate_area((args.ld_input_size, args.ld_input_size),
-                                                (x.shape[3], x.shape[2]))
-                    mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                                         hole_size=img_hole_size, hole_area=x_hole_area,
-                                         max_holes=args.max_holes)
-                    if args.gpu:
-                        x = x.cuda()
-                        mask = mask.cuda()
-                    x_mask = x - x * mask + mpv * mask
-                    input = torch.cat((x_mask, mask), dim=1)
                     with torch.no_grad():
+                        x = sample_random_batch(
+                            test_set, batch_size=args.num_test_completions)
+                        x_hole_area = generate_area((args.ld_input_size, args.ld_input_size),
+                                                    (x.shape[3], x.shape[2]))
+                        mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+                                             hole_size=img_hole_size, hole_area=x_hole_area,
+                                             max_holes=args.max_holes)
+                        if args.gpu:
+                            x = x.cuda()
+                            mask = mask.cuda()
+                        x_mask = x - x * mask + mpv * mask
+                        input = torch.cat((x_mask, mask), dim=1)
                         output = model_cn(input)
-                    completed = poisson_blend(x_mask, output, mask)
-                    imgs = torch.cat((x, x_mask, completed), dim=0)
-                    if args.gpu:
-                        imgs = imgs.cuda()
-                    imgpath = os.path.join(
-                        args.result_dir, 'phase_1', 'step%d.png' % pbar.n)
-                    model_cn_path = os.path.join(
-                        args.result_dir, 'phase_1', 'model_cn_step%d' % pbar.n)
-                    save_image(imgs, imgpath, nrow=len(x))
-                    if args.data_parallel:
-                        torch.save(model_cn.module.state_dict(), model_cn_path)
-                    else:
-                        torch.save(model_cn.state_dict(), model_cn_path)
+                        completed = poisson_blend(x_mask, output, mask)
+                        imgs = torch.cat((x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
+                        if args.gpu:
+                            imgs = imgs.cuda()
+                        imgpath = os.path.join(
+                            args.result_dir, 'phase_1', 'step%d.png' % pbar.n)
+                        model_cn_path = os.path.join(
+                            args.result_dir, 'phase_1', 'model_cn_step%d' % pbar.n)
+                        save_image(imgs, imgpath, nrow=len(x))
+                        if args.data_parallel:
+                            torch.save(model_cn.module.state_dict(), model_cn_path)
+                        else:
+                            torch.save(model_cn.state_dict(), model_cn_path)
                     model_cn.train()
                 if pbar.n >= args.steps_1:
                     break
@@ -290,6 +290,7 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
     if args.gpu:
         model_cd = model_cd.cuda()
     opt_cd = Adadelta(model_cd.parameters())
+    loss_function = torch.nn.BCELoss()
 
     # training
     cnt_bdivs = 0
@@ -318,7 +319,6 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                 input_gd_fake = input_gd_fake.cuda()
                 input_ld_fake = input_ld_fake.cuda()
             output_fake = model_cd((input_ld_fake, input_gd_fake))
-            loss_function = torch.nn.BCELoss()
             loss_fake = loss_function(output_fake, fake)
 
             # real forward
@@ -329,7 +329,6 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                 real = real.cuda()
             input_ld_real = crop(x, hole_area_real)
             output_real = model_cd((input_ld_real, x))
-            loss_function = torch.nn.BCELoss()
             loss_real = loss_function(output_real, real)
 
             # reduce
@@ -365,7 +364,7 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                         input = torch.cat((x_mask, mask), dim=1)
                         output = model_cn(input)
                         completed = poisson_blend(x_mask, output, mask)
-                        imgs = torch.cat((x, x_mask, completed), dim=0)
+                        imgs = torch.cat((x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
                         if args.gpu:
                             imgs = imgs.cuda()
                         imgpath = os.path.join(
@@ -446,6 +445,8 @@ def train(args, pretrained_cn, pretrained_cd):
         args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hole_size)
 
     # Phase 3: train both generator and discriminator
+    bceloss = torch.nn.BCELoss()
+    mseloss = torch.nn.MSELoss()
     cnt_bdivs = 0
     pbar = tqdm(total=args.steps_3)
     while pbar.n < args.steps_3:
@@ -471,8 +472,7 @@ def train(args, pretrained_cn, pretrained_cd):
             input_gd_fake = output_cn.detach()
             input_ld_fake = crop(input_gd_fake, hole_area_fake)
             output_fake = model_cd((input_ld_fake, input_gd_fake))
-            loss_function = torch.nn.MSELoss()
-            loss_cd_fake = loss_function(output_fake, fake)
+            loss_cd_fake = bceloss(output_fake, fake)
 
             # real forward
             hole_area_real = generate_area((args.ld_input_size, args.ld_input_size),
@@ -482,8 +482,7 @@ def train(args, pretrained_cn, pretrained_cd):
                 real = real.cuda()
             input_ld_real = crop(x, hole_area_real)
             output_real = model_cd((input_ld_real, x))
-            loss_function = torch.nn.BCELoss()
-            loss_cd_real = loss_function(output_real, real)
+            loss_cd_real = bceloss(output_real, real)
 
             # reduce
             loss_cd = (loss_cd_fake + loss_cd_real) * alpha / 2.
@@ -499,10 +498,10 @@ def train(args, pretrained_cn, pretrained_cd):
             # forward model_cn
             temp = output_cn*mask
 
-            loss_cn_1 = loss_function(x*mask, temp.detach())
+            loss_cn_1 = mseloss(x*mask, temp.detach())
             input_ld_fake = crop(output_cn, hole_area_fake)
             output_fake = model_cd((input_ld_fake, output_cn))
-            loss_cn_2 = loss_function(output_fake, real)
+            loss_cn_2 = bceloss(output_fake, real)
 
             # reduce
             loss_cn = (loss_cn_1 + alpha * loss_cn_2) / 2.
@@ -522,41 +521,41 @@ def train(args, pretrained_cn, pretrained_cd):
                 # test
                 if pbar.n % args.snaperiod_3 == 0:
                     model_cn.eval()
-                    x = sample_random_batch(
-                        test_set, batch_size=args.num_test_completions)
-                    x_hole_area = generate_area((args.ld_input_size, args.ld_input_size),
-                                                (x.shape[3], x.shape[2]))
-                    mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                                         hole_size=img_hole_size, hole_area=x_hole_area,
-                                         max_holes=args.max_holes)
-                    if args.gpu:
-                        x = x.cuda()
-                        mask = mask.cuda()
-                    x_mask = x - x * mask + mpv * mask
-                    x_mask = x_mask.type(torch.float32).cuda()
-                    mask = mask.type(torch.float32).cuda()
-                    input = torch.cat((x_mask, mask), dim=1)
                     with torch.no_grad():
+                        x = sample_random_batch(
+                            test_set, batch_size=args.num_test_completions)
+                        x_hole_area = generate_area((args.ld_input_size, args.ld_input_size),
+                                                    (x.shape[3], x.shape[2]))
+                        mask = generate_mask(shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+                                             hole_size=img_hole_size, hole_area=x_hole_area,
+                                             max_holes=args.max_holes)
+                        if args.gpu:
+                            x = x.cuda()
+                            mask = mask.cuda()
+                        x_mask = x - x * mask + mpv * mask
+                        x_mask = x_mask.type(torch.float32).cuda()
+                        mask = mask.type(torch.float32).cuda()
+                        input = torch.cat((x_mask, mask), dim=1)
                         output = model_cn(input)
-                    completed = poisson_blend(x_mask, output, mask)
-                    if args.gpu:
-                        completed = completed.cuda()
-                    imgs = torch.cat((x, x_mask, completed), dim=0)
-                    if args.gpu:
-                        imgs = imgs.cuda()
-                    imgpath = os.path.join(
-                        args.result_dir, 'phase_3', 'step%d.png' % pbar.n)
-                    model_cn_path = os.path.join(
-                        args.result_dir, 'phase_3', 'model_cn_step%d' % pbar.n)
-                    model_cd_path = os.path.join(
-                        args.result_dir, 'phase_3', 'model_cd_step%d' % pbar.n)
-                    save_image(imgs, imgpath, nrow=len(x))
-                    if args.data_parallel:
-                        torch.save(model_cn.module.state_dict(), model_cn_path)
-                        torch.save(model_cd.module.state_dict(), model_cd_path)
-                    else:
-                        torch.save(model_cn.state_dict(), model_cn_path)
-                        torch.save(model_cd.state_dict(), model_cd_path)
+                        completed = poisson_blend(x_mask, output, mask)
+                        if args.gpu:
+                            completed = completed.cuda()
+                        imgs = torch.cat((x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
+                        if args.gpu:
+                            imgs = imgs.cuda()
+                        imgpath = os.path.join(
+                            args.result_dir, 'phase_3', 'step%d.png' % pbar.n)
+                        model_cn_path = os.path.join(
+                            args.result_dir, 'phase_3', 'model_cn_step%d' % pbar.n)
+                        model_cd_path = os.path.join(
+                            args.result_dir, 'phase_3', 'model_cd_step%d' % pbar.n)
+                        save_image(imgs, imgpath, nrow=len(x))
+                        if args.data_parallel:
+                            torch.save(model_cn.module.state_dict(), model_cn_path)
+                            torch.save(model_cd.module.state_dict(), model_cd_path)
+                        else:
+                            torch.save(model_cn.state_dict(), model_cn_path)
+                            torch.save(model_cd.state_dict(), model_cd_path)
                     model_cn.train()
                 if pbar.n >= args.steps_3:
                     break
