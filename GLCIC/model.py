@@ -8,7 +8,7 @@ The body for generator and discriminators are on the later part of this file.
 """
 
 
-def down_conv(num_in_feature, num_out_feature, kernel_size=5, stride=1, padding=2, dilation=0, normalize=True):
+def down_conv(num_in_feature, num_out_feature, kernel_size=5, stride=1, padding=2, dilation=1, normalize=True):
     """
     The convolution module together with batchnorm and activation function.
     """
@@ -116,7 +116,8 @@ class LocalDiscriminator(nn.Module):
             *down_conv(256, 512, 5, 2, 2),
             *down_conv(512, 512, 5, 2, 2),
             Flatten(),
-            nn.Linear(512 * (self.input_height // 32) * (self.input_width // 32), 1024),
+            nn.Linear(512 * (self.input_height // 32)
+                      * (self.input_width // 32), 1024),
             nn.ReLU()
         )
 
@@ -128,6 +129,7 @@ class GlobalDiscriminator(nn.Module):
     """
     Global discriminator network.
     """
+
     def __init__(self, in_shape, architecture='celeba'):
         super(GlobalDiscriminator, self).__init__()
         self.arc = architecture
@@ -180,7 +182,8 @@ class ContextDiscriminator(nn.Module):
         self.concat = Concatenate(-1)
 
         self.layers = nn.Sequential(
-            nn.Linear(self.local_D.output_shape[-1] + self.global_D.out_shape[-1], 1),
+            nn.Linear(
+                self.local_D.output_shape[-1] + self.global_D.out_shape[-1], 1),
             nn.Sigmoid()
         )
         self.loss = torch.nn.BCELoss()
