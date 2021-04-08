@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from PIL import Image
 from model import CompletionNetwork
-from train import poisson_blend, gen_input_mask
+from train import poisson_blend, generate_mask
 
 
 parser = argparse.ArgumentParser()
@@ -23,12 +23,38 @@ parser.add_argument('--hole_max_h', type=int, default=48)
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    args.model = os.path.expanduser(args.model)
-    args.config = os.path.expanduser(args.config)
-    args.input_img = os.path.expanduser(args.input_img)
-    args.output_img = os.path.expanduser(args.output_img)
-
+    args = AttrDict()
+    # set hyperparameters
+    args_dict = {
+        "gpu": True,
+        "data_dir": "./img_align_celeba/",
+        "result_dir": "./results/result/",
+        "data_parallel": True,
+        "recursive_search": False,
+        "steps_1": 1,
+        "steps_2": 1,
+        "steps_3": 1,
+        "snaperiod_1": 10000,
+        "snaperiod_2": 2000,
+        "snaperiod_3": 10000,
+        "max_holes": 1,
+        "hole_min_w": 48,
+        "hole_max_w": 96,
+        "hole_min_h": 48,
+        "hole_max_h": 96,
+        "cn_input_size": 160,
+        "ld_input_size": 96,
+        "bsize": 16,
+        "bdivs": 1,
+        "num_test_completions": 16,
+        "mpv": None,
+        "alpha": 4e-4,
+        "arc": 'celeba',  # 'celeba' or 'places2'
+    }
+    # set pretrained models if necessary
+    pretrained_cn = None
+    pretrained_cd = None
+    args.update(args_dict)
     # =============================================
     # Load model
     # =============================================

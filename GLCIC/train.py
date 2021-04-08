@@ -16,6 +16,7 @@ import cv2
 from tqdm import tqdm
 from model import CompletionNetwork, ContextDiscriminator
 from dataset import ImageDataset
+from torch.autograd import Variable
 
 
 def generate_mask(shape, hole_size, hole_area=None, max_holes=1):
@@ -219,7 +220,7 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
             x_mask = x - x * mask + mpv * mask
             x_mask = x_mask.type(torch.float32).cuda()
             mask = mask.type(torch.float32).cuda()
-            input = torch.cat((x_mask, mask), dim=1)
+            input = torch.cat((x_mask, mask), dim=1).cuda()
             output = model_cn(input)
             loss_function = torch.nn.MSELoss()
             loss = loss_function(x*mask, output*mask)
@@ -307,7 +308,9 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                 mask = mask.cuda()
                 fake = fake.cuda()
             x_mask = x - x * mask + mpv * mask
-            input_cn = torch.cat((x_mask, mask), dim=1)
+            x_mask = x_mask.type(torch.float32).cuda()
+            mask = mask.type(torch.float32).cuda()
+            input_cn = torch.cat((x_mask, mask), dim=1).cuda()
             output_cn = model_cn(input_cn)
             input_gd_fake = output_cn.detach()
             input_ld_fake = crop(input_gd_fake, hole_area_fake)
@@ -315,7 +318,8 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                 input_gd_fake = input_gd_fake.cuda()
                 input_ld_fake = input_ld_fake.cuda()
             output_fake = model_cd((input_ld_fake, input_gd_fake))
-            loss_fake = model_cd.loss(output_fake, fake)
+            loss_function = torch.nn.BCELoss()
+            loss_fake = loss_function(output_fake, fake)
 
             # real forward
             hole_area_real = generate_area((args.ld_input_size, args.ld_input_size),
@@ -325,7 +329,8 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                 real = real.cuda()
             input_ld_real = crop(x, hole_area_real)
             output_real = model_cd((input_ld_real, x))
-            loss_real = model_cd.loss(output_real, real)
+            loss_function = torch.nn.BCELoss()
+            loss_real = loss_function(output_real, real)
 
             # reduce
             loss = (loss_fake + loss_real) / 2.
@@ -459,12 +464,15 @@ def train(args, pretrained_cn, pretrained_cd):
                 mask = mask.cuda()
                 fake = fake.cuda()
             x_mask = x - x * mask + mpv * mask
-            input_cn = torch.cat((x_mask, mask), dim=1)
+            x_mask = x_mask.type(torch.float32).cuda()
+            mask = mask.type(torch.float32).cuda()
+            input_cn = torch.cat((x_mask, mask), dim=1).cuda()
             output_cn = model_cn(input_cn)
             input_gd_fake = output_cn.detach()
             input_ld_fake = crop(input_gd_fake, hole_area_fake)
             output_fake = model_cd((input_ld_fake, input_gd_fake))
-            loss_cd_fake = model_cd.loss(output_fake, fake)
+            loss_function = torch.nn.MSELoss()
+            loss_cd_fake = loss_function(output_fake, fake)
 
             # real forward
             hole_area_real = generate_area((args.ld_input_size, args.ld_input_size),
@@ -474,7 +482,8 @@ def train(args, pretrained_cn, pretrained_cd):
                 real = real.cuda()
             input_ld_real = crop(x, hole_area_real)
             output_real = model_cd((input_ld_real, x))
-            loss_cd_real = model_cd.loss(output_real, real)
+            loss_function = torch.nn.BCELoss()
+            loss_cd_real = loss_function(output_real, real)
 
             # reduce
             loss_cd = (loss_cd_fake + loss_cd_real) * alpha / 2.
@@ -488,10 +497,12 @@ def train(args, pretrained_cn, pretrained_cd):
                 opt_cd.zero_grad()
 
             # forward model_cn
-            loss_cn_1 = model_cn.loss(x*mask, output_cn*mask)
+            temp = output_cn*mask
+
+            loss_cn_1 = loss_function(x*mask, temp.detach())
             input_ld_fake = crop(output_cn, hole_area_fake)
             output_fake = model_cd((input_ld_fake, output_cn))
-            loss_cn_2 = model_cd.loss(output_fake, real)
+            loss_cn_2 = loss_function(output_fake, real)
 
             # reduce
             loss_cn = (loss_cn_1 + alpha * loss_cn_2) / 2.
@@ -522,6 +533,8 @@ def train(args, pretrained_cn, pretrained_cd):
                         x = x.cuda()
                         mask = mask.cuda()
                     x_mask = x - x * mask + mpv * mask
+                    x_mask = x_mask.type(torch.float32).cuda()
+                    mask = mask.type(torch.float32).cuda()
                     input = torch.cat((x_mask, mask), dim=1)
                     with torch.no_grad():
                         output = model_cn(input)
@@ -552,7 +565,6 @@ def train(args, pretrained_cn, pretrained_cd):
 
 if __name__ == '__main__':
     args = AttrDict()
-    cuda = True
     # set hyperparameters
     args_dict = {
         "gpu": True,
@@ -560,11 +572,12 @@ if __name__ == '__main__':
         "result_dir": "./results/result/",
         "data_parallel": True,
         "recursive_search": False,
-        "steps_1": 90000,
-        "steps_2": 10000,
-        "steps_3": 400000,
+        "steps_1": 1,
+        "steps_2": 1,
+        "steps_3": 1,
         "snaperiod_1": 10000,
         "snaperiod_2": 2000,
+        "snaperiod_3": 1,
         "max_holes": 1,
         "hole_min_w": 48,
         "hole_max_w": 96,
