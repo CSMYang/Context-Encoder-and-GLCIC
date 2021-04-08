@@ -9,52 +9,29 @@ from model import CompletionNetwork
 from train import poisson_blend, generate_mask
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('model')
-parser.add_argument('config')
-parser.add_argument('input_img')
-parser.add_argument('output_img')
-parser.add_argument('--max_holes', type=int, default=5)
-parser.add_argument('--img_size', type=int, default=160)
-parser.add_argument('--hole_min_w', type=int, default=24)
-parser.add_argument('--hole_max_w', type=int, default=48)
-parser.add_argument('--hole_min_h', type=int, default=24)
-parser.add_argument('--hole_max_h', type=int, default=48)
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
 
 if __name__ == "__main__":
     args = AttrDict()
     # set hyperparameters
     args_dict = {
-        "gpu": True,
-        "data_dir": "./img_align_celeba/",
-        "result_dir": "./results/result/",
-        "data_parallel": True,
-        "recursive_search": False,
-        "steps_1": 1,
-        "steps_2": 1,
-        "steps_3": 1,
-        "snaperiod_1": 10000,
-        "snaperiod_2": 2000,
-        "snaperiod_3": 10000,
-        "max_holes": 1,
-        "hole_min_w": 48,
-        "hole_max_w": 96,
-        "hole_min_h": 48,
-        "hole_max_h": 96,
-        "cn_input_size": 160,
-        "ld_input_size": 96,
-        "bsize": 16,
-        "bdivs": 1,
-        "num_test_completions": 16,
-        "mpv": None,
-        "alpha": 4e-4,
-        "arc": 'celeba',  # 'celeba' or 'places2'
+        "model": "./img_align_celeba/",
+        "config": "./results/result/",
+        "input_img": "", # input img location
+        "output_img": "", # output img location
+        "max_holes": 5,
+        "img_size": 160,
+        "hole_min_w": 24,
+        "hole_max_w": 46,
+        "hole_min_h": 24,
+        "hole_max_h": 48,
     }
-    # set pretrained models if necessary
-    pretrained_cn = None
-    pretrained_cd = None
     args.update(args_dict)
+
     # =============================================
     # Load model
     # =============================================
