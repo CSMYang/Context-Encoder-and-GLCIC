@@ -22,7 +22,7 @@ args_dict = {
     'beta1': 0.5,
     'beta2': 0.999,
     'batchSize': 32,
-    'epoches': 10,
+    'epoches': 100,
     'crop_size': 50
 }
 
@@ -40,6 +40,7 @@ pixelwise_loss.cuda()
 Generator = Generator()
 Discriminator = Discriminator()
 
+# load state dict
 Generator.cuda()
 Discriminator.cuda()
 
@@ -82,7 +83,7 @@ Dis_optimizer = torch.optim.Adam(
     Discriminator.parameters(), lr=args_dict["lr"], betas=(args_dict["beta1"], args_dict["beta2"]))
 
 
-def save_sample_image(Generator, real_image, iteration, epoch):
+def save_sample_image(Generator, real_image, iteration, epoch, day):
 
     SavingImage = real_image.clone()
     fake_center = Generator(SavingImage)
@@ -93,7 +94,7 @@ def save_sample_image(Generator, real_image, iteration, epoch):
     leftImageCenter = int(fake_center_size/2)
     SavingImage[:, leftImageCenter:leftImageCenter+fake_center_size,
                 leftImageCenter: leftImageCenter+fake_center_size] = fake_center[0][:, :, :]
-    path = os.path.join("ContextEncoder\Result",
+    path = os.path.join("ContextEncoder\Result\day{0}\\".format(day),
                         'sample-{:06d} -{:06d}.png'.format(epoch, iteration))
     result_image = torch.ones((128, 128, 3))
     result_image[:, :, 0] = SavingImage[0]
@@ -104,7 +105,7 @@ def save_sample_image(Generator, real_image, iteration, epoch):
     result_image_1 *= 255/2
 
     imageio.imwrite(path, result_image_1.type(torch.uint8).detach())
-    path = os.path.join("ContextEncoder\Result",
+    path = os.path.join("ContextEncoder\Result\day{0}\\".format(day),
                         'real-{:06d} -{:06d}.png'.format(epoch, iteration))
 
     temp_image = torch.ones((128, 128, 3))
@@ -119,6 +120,16 @@ def save_sample_image(Generator, real_image, iteration, epoch):
 
 
 if __name__ == '__main__':
+    # load state dict
+
+    Gen_optimizer.load_state_dict(torch.load(
+        "ContextEncoder\model\GenOptimizer\GenOptim_99_day1.pth"))
+    Dis_optimizer.load_state_dict(torch.load(
+        "ContextEncoder\model\DisOptimizer\DisOptim_99_day1.pth"))
+    Discriminator.load_state_dict(torch.load(
+        "ContextEncoder\model\Discriminator\Discriminator_99_day1.pth"))
+    Generator.load_state_dict(torch.load(
+        "ContextEncoder\model\Generator\Generator_99_day1.pth"))
     for epoch in range(args_dict["epoches"]):
         for i, image in enumerate(dataloader):
             dataclass = DataProcess(image, 64)
@@ -165,11 +176,17 @@ if __name__ == '__main__':
                   "G total loss", G_total_loss.item())
             # save check point
             if(i % 100 == 0):
-                save_sample_image(Generator, real_image, i, epoch)
-            Gpath = os.path.join('ContextEncoder\model\Generator',
-                                 'Generator_{0}.pth'.format(epoch))
-            Dpath = os.path.join('ContextEncoder\model\Discriminator',
-                                 'Discriminator_{0}.pth'.format(epoch))
+                save_sample_image(Generator, real_image, i, epoch, day=2)
 
+        Gpath = os.path.join('ContextEncoder\model\Generator',
+                             'Generator_{0}_day{1}.pth'.format(epoch, 2))
+        Dpath = os.path.join('ContextEncoder\model\Discriminator',
+                             'Discriminator_{0}_day{1}.pth'.format(epoch, 2))
+        DisoptimizerPath = os.path.join('ContextEncoder\model\DisOptimizer',
+                                        'DisOptim_{0}_day{1}.pth'.format(epoch, 2))
+        GenoptimizerPath = os.path.join('ContextEncoder\model\GenOptimizer',
+                                        'GenOptim_{0}_day{1}.pth'.format(epoch, 2))
         torch.save(Generator.state_dict(), Gpath)
         torch.save(Discriminator.state_dict(), Dpath)
+        torch.save(Gen_optimizer.state_dict(), GenoptimizerPath)
+        torch.save(Dis_optimizer.state_dict(), DisoptimizerPath)
