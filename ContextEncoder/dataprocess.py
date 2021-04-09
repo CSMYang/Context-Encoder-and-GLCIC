@@ -24,5 +24,7 @@ class DataProcess():
         leftImageCenter = int(self.mask_size/2)
         masked_image = images[:, :, leftImageCenter:leftImageCenter +
                               self.mask_size, leftImageCenter:leftImageCenter + self.mask_size].cuda()
+        images[:, :, leftImageCenter:leftImageCenter +
+               self.mask_size, leftImageCenter:leftImageCenter + self.mask_size] = 0
 
         return masked_image, images

@@ -84,7 +84,7 @@ Dis_optimizer = torch.optim.Adam(
 
 def save_sample_image(Generator, real_image, iteration, epoch):
 
-    SavingImage = real_image
+    SavingImage = real_image.clone()
     fake_center = Generator(SavingImage)
     SavingImage = SavingImage[0]
 
@@ -94,7 +94,7 @@ def save_sample_image(Generator, real_image, iteration, epoch):
     SavingImage[:, leftImageCenter:leftImageCenter+fake_center_size,
                 leftImageCenter: leftImageCenter+fake_center_size] = fake_center[0][:, :, :]
     path = os.path.join("ContextEncoder\Result",
-                        'sample-{:06d} -{:06d}.png'.format(iteration, epoch))
+                        'sample-{:06d} -{:06d}.png'.format(epoch, iteration))
     result_image = torch.ones((128, 128, 3))
     result_image[:, :, 0] = SavingImage[0]
     result_image[:, :, 1] = SavingImage[1]
@@ -102,7 +102,20 @@ def save_sample_image(Generator, real_image, iteration, epoch):
     result_image_1 = torch.ones((128, 128, 3), dtype=int)
     result_image_1 = result_image + 1
     result_image_1 *= 255/2
+
     imageio.imwrite(path, result_image_1.type(torch.uint8).detach())
+    path = os.path.join("ContextEncoder\Result",
+                        'real-{:06d} -{:06d}.png'.format(epoch, iteration))
+
+    temp_image = torch.ones((128, 128, 3))
+    temp_image[:, :, 0] = real_image[0][0]
+    temp_image[:, :, 1] = real_image[0][1]
+    temp_image[:, :, 2] = real_image[0][2]
+    temp_image_1 = torch.ones((128, 128, 3), dtype=int)
+    temp_image_1 = temp_image + 1
+    temp_image_1 *= 255/2
+
+    imageio.imwrite(path, temp_image_1.type(torch.uint8).detach())
 
 
 if __name__ == '__main__':
