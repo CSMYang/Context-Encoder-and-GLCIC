@@ -4,14 +4,13 @@ import torch
 from matplotlib import pyplot as plt
 
 
-def visualize_saliency_map(img_path, input_width, input_height, model, model_state_dict):
+def visualize_saliency_map(img_path, input_width, input_height, model):
     """
     This function shows the saliency map of an image
     :param img_path: a string of the path to the image for visualization
     :param input_width: input height to the model
     :param input_height: input width to the model
     :param model: the model used for image classification. In our case, it will be a discriminator
-    :param model_state_dict: the state dict for the model.
     """
     image = Image.open(img_path)
     transform = transforms.Compose([
