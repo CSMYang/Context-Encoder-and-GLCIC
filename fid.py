@@ -38,7 +38,8 @@ def calculate_fid(source_img_dir, target_img_dir, shape=(299, 299, 3)):
     """
     model = InceptionV3(include_top=False, pooling='avg', input_shape=shape)
     # read the images
-    imgs1, imgs2 = get_images(source_img_dir, shape), get_images(target_img_dir, shape)
+    size = (shape[0], shape[1])
+    imgs1, imgs2 = get_images(source_img_dir, size), get_images(target_img_dir, size)
     act1, act2 = model.predict(preprocess_input(imgs1)), model.predict(preprocess_input(imgs2))
     mu1, sigma1 = act1.mean(axis=0), np.cov(act1, rowvar=False)
     mu2, sigma2 = act2.mean(axis=0), np.cov(act2, rowvar=False)
@@ -52,10 +53,10 @@ def calculate_fid(source_img_dir, target_img_dir, shape=(299, 299, 3)):
 
 if __name__ == '__main__':
     # test
-    img_real_dir = ""
+    img_real_dir = "C:/Users/apple1/Downloads/CSC413H1S/Project/GLCIC-PyTorch-master/images"
     output_dir = ""
     fid = calculate_fid(img_real_dir, output_dir)
     print('FID (same): %.3f' % fid)
     # fid between images1 and images2
-    fid = calculate_fid(images1, images2)
+    fid = calculate_fid(img_real_dir, img_real_dir)
     print('FID (different): %.3f' % fid)
