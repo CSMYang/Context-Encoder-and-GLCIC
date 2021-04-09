@@ -53,7 +53,7 @@ def calculate_fid(source_img_dir, target_img_dir, shape=(299, 299, 3)):
 
 if __name__ == '__main__':
     # test
-    img_real_dir = "C:/Users/apple1/Downloads/CSC413H1S/Project/GLCIC-PyTorch-master/images"
+    img_real_dir = ""
     output_dir = ""
     fid = calculate_fid(img_real_dir, output_dir)
     print('FID (same): %.3f' % fid)
