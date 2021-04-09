@@ -50,7 +50,7 @@ if __name__ == "__main__":
     x = torch.unsqueeze(x, dim=0)
 
     # create mask
-    mask = gen_input_mask(
+    mask = generate_mask(
         shape=(1, 1, x.shape[2], x.shape[3]),
         hole_size=(
             (args.hole_min_w, args.hole_max_w),
@@ -67,5 +67,5 @@ if __name__ == "__main__":
         output = model(input)
         inpainted = poisson_blend(x_mask, output, mask)
         imgs = torch.cat((x, x_mask, inpainted), dim=0)
-        save_image(imgs, args.output_img, nrow=3)
+        save_image(inpainted, args.output_img, nrow=3)
     print('output img was saved as %s.' % args.output_img)
