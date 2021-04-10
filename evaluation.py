@@ -3,7 +3,7 @@ import math
 from skimage.metrics import structural_similarity
 
 
-def psnr(real_img, generated_img, PIXEL_MAX = 255.0):
+def psnr(real_img, generated_img, PIXEL_MAX=255.0):
     """
     This function computes the PSNR score between two images.
     :param generated_img: A tensor to the generated image
@@ -28,4 +28,4 @@ def ssim(real_img, generated_img):
     img_1 = real_img.cpu().numpy()
     img_2 = generated_img.cpu().numpy()
 
-    return structural_similarity(img_1, img_2, data_range=real_img.max() - real_img.min())
+    return structural_similarity(img_1, img_2, data_range=img_1.max() - img_1.min())

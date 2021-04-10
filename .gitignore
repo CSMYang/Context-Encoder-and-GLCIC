@@ -13,3 +13,15 @@ ContextEncoder/Dataset/cifar-10-python.tar.gz
 *.png
 *.pth
 *.jpg
+*.cc
+*.hh
+*.m
+ContextEncoder/Dataset/cifar-100-python/file.txt~
+ContextEncoder/Dataset/benchmark.tgz
+ContextEncoder/Dataset/cifar-100-python.tar.gz
+ContextEncoder/Dataset/cifar-100-python/meta
+ContextEncoder/Dataset/cifar-100-python/test
+ContextEncoder/Dataset/cifar-100-python/train
+ContextEncoder/Dataset/train.txt
+ContextEncoder/Dataset/train_noval.txt
+ContextEncoder/Dataset/val.txt

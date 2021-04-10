@@ -1,21 +1,56 @@
-import torch
-from torch import nn
 import copy
-from collections import deque
-import random
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-import torchvision.datasets as dset
-from model import Generator, Discriminator
-import torchvision.transforms as transforms
-import imageio
-from dataprocess import DataProcess
+import imghdr
 import os
-from PIL import Image
-from skimage import img_as_ubyte
-import numpy as np
+import random
+from collections import deque
+
 import cv2
 import imageio
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torchvision.datasets as dset
+import torchvision.transforms as transforms
+from PIL import Image
+from skimage import img_as_ubyte
+from torch import nn
+from torch.utils.data import Dataset
+from tqdm import tqdm
+
+from dataprocess import DataProcess
+from model import Discriminator, Generator
+import numpy
+import math
+from skimage.metrics import structural_similarity, peak_signal_noise_ratio
+import torch
+
+
+def psnr(real_img, generated_img, PIXEL_MAX=255.0):
+    """
+    This function computes the PSNR score between two images.
+    :param generated_img: A tensor to the generated image
+    :param real_img: A tensor to the real image
+    :return: The PSNR score
+    """
+    img_1 = real_img.cpu().numpy()
+    img_2 = generated_img.cpu().numpy()
+    mse = numpy.mean((img_1 - img_2) ** 2)
+    if mse == 0:
+        return 100
+    return 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
+
+
+def ssim(real_img, generated_img):
+    """
+    The function computes the SSIM score between two images.
+    :param real_img: A tensor to the generated image
+    :param generated_img: A tensor to the real image
+    :return: The structural similarity score
+    """
+    img_1 = real_img.cpu().numpy()
+    img_2 = generated_img.cpu().numpy()
+
+    return structural_similarity(img_1, img_2, multichannel=True)
 
 
 def visualize_saliency_map(img_path, input_width, input_height, model):
@@ -97,6 +132,49 @@ def perdict(Generator, real_image):
 
     imageio.imwrite("ContextEncoder\\testresult.png",
                     temp_image_1.type(torch.uint8).detach())
+    return result_image_1
+
+
+"""
+https://github.com/otenim/GLCIC-PyTorch/blob/master/datasets.py
+"""
+
+
+class ImageDataset(Dataset):
+    def __init__(self, data_dir, transform=None, recursive_search=False):
+        super(ImageDataset, self).__init__()
+        self.data_dir = os.path.expanduser(data_dir)
+        self.transform = transform
+        self.images = self.__load_images_from_dir(
+            self.data_dir, walk=recursive_search)
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index, color_format='RGB'):
+        img = (Image.open(self.images[index])).convert(color_format)
+        return self.transform(img) if self.transform else img
+
+    def __is_imgfile(self, filepath):
+        filepath = os.path.expanduser(filepath)
+        return os.path.isfile(filepath) and imghdr.what(filepath)
+
+    def __load_images_from_dir(self, dirpath, walk=False):
+        images = []
+        dirpath = os.path.expanduser(dirpath)
+        if walk:
+            for (root, _, files) in os.walk(dirpath):
+                for file in files:
+                    file = os.path.join(root, file)
+                    if self.__is_imgfile(file):
+                        images.append(file)
+        else:
+            for path in os.listdir(dirpath):
+                path = os.path.join(dirpath, path)
+                if not self.__is_imgfile(path):
+                    continue
+                images.append(path)
+        return images
 
 
 if __name__ == '__main__':
@@ -107,27 +185,74 @@ if __name__ == '__main__':
     # visualize_saliency_map(
     #     "ContextEncoder\Result\day1\sample-000099 -001400.png", 64, 64, Discriminator)
 
-    Generator = Generator()
-    Generator.load_state_dict(
-        torch.load("ContextEncoder\model\Generator\Generator_0_day2.pth")
-    )
-    image = Image.open("ContextEncoder\Result\day2\\real-000001 -000100.png")
     transform = transforms.Compose([
         transforms.Resize((128, 128)),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
     ])
+    Generator = Generator().cuda()
+    Generator.load_state_dict(
+        torch.load("ContextEncoder\model\Generator\Generator_99_day1.pth")
+    )
+    # read image in folder
+    train_set = ImageDataset("ContextEncoder\\testing_image\\real",
+                             transform, recursive_search=True)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=1,
+                                               shuffle=False)
 
-    image = transform(image)
-    image[:, 32:32+64,
+    # read CIFAR10 dataset
+    # dataset = dset.CIFAR10(root="ContextEncoder\Dataset", download=True,
+    #                        transform=transforms.Compose([
+    #                            transforms.Resize(128),
+    #                            transforms.ToTensor(),
+    #                            transforms.Normalize(
+    #                                (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    #                        ]))
+
+    # train_loader = torch.utils.data.DataLoader(dataset, batch_size=1,
+    #                                            shuffle=False, num_workers=int(1))
+
+    for i, img in enumerate(train_loader):
+        if(i == 0):
+            image = img
+            break
+
+    real_image = image.clone()
+    image[:, :, 32:32+64,
           32:32+64] = 0
 
     image = image.cuda()
-    print(image.shape)
 
     temp_img = torch.zeros((1, 3, 128, 128))
-    temp_img[0] = image.clone()
+    temp_img = image.clone()
     temp_img.cuda()
 
-    perdict(Generator, temp_img)
+    result = perdict(Generator, temp_img)
+
+    # real masked image
+    temp_temp_image = torch.ones((128, 128, 3))
+    temp_temp_image[:, :, 0] = temp_img[0][0]
+    temp_temp_image[:, :, 1] = temp_img[0][1]
+    temp_temp_image[:, :, 2] = temp_img[0][2]
+    temp_temp_image_1 = torch.ones((128, 128, 3), dtype=int)
+    temp_temp_image_1 = temp_temp_image + 1
+    temp_temp_image_1 *= 255/2
+
+    # real image
+    real_real_image = torch.ones((128, 128, 3))
+    real_real_image[:, :, 0] = real_image[0][0]
+    real_real_image[:, :, 1] = real_image[0][1]
+    real_real_image[:, :, 2] = real_image[0][2]
+    real_real_image_1 = torch.ones((128, 128, 3), dtype=int)
+    real_real_image_1 = real_real_image + 1
+    real_real_image_1 *= 255/2
+
+    imageio.imwrite("ContextEncoder\\testreal.png",
+                    real_real_image_1.type(torch.uint8).detach())
+
+    print(real_image[0].shape, temp_img[0].shape)
+    # print(ssim(result.cpu().detach(), temp_temp_image_1))
+    print(ssim(result[32:32+64,
+                      32:32+64, :].cpu().detach(), real_real_image_1[32:32+64,
+                                                                     32:32+64, :]))
