@@ -29,8 +29,8 @@ def make_dataset(data_dir, split=0.8):
     border = int(split * len(src_paths))
     train_paths = src_paths[:border]
     test_paths = src_paths[border:]
-    print('train images: %d images.' % len(train_paths))
-    print('test images: %d images.' % len(test_paths))
+    print('train images: {} images.'.format(len(train_paths)))
+    print('test images: {} images.'.format(len(test_paths)))
 
     # create dst directories
     train_dir = os.path.join(dir, 'train')
@@ -53,5 +53,4 @@ def make_dataset(data_dir, split=0.8):
 if __name__ == '__main__':
     # dataset directory
     data_dir = "./img_align_celeba/"
-    split = 0.8
-    make_dataset(data_dir, split)
+    make_dataset(data_dir)
