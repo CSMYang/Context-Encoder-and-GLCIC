@@ -25,7 +25,7 @@ def generate_mask(shape, hole_size, hole_area=None, max_holes=1):
         - shape (sequence, required):
                 Shape of a mask tensor to be generated.
                 A sequence of length 4 (N, C, H, W) is assumed.
-        - hole_size (sequence or int, required):
+        - hole_size (sequence, required):
                 Size of holes created in a mask.
                 If a sequence of length 4 is provided,
                 holes of size (W, H) = (
@@ -48,7 +48,7 @@ def generate_mask(shape, hole_size, hole_area=None, max_holes=1):
             while the other pixel values are zeros.
     """
     mask = torch.zeros(shape)
-    for i in range(mask.shape[0]):
+    for i in range(shape[0]):
         n_holes = random.randint(1, max_holes)
         for _ in range(n_holes):
             hole_w = random.randint(hole_size[0][0], hole_size[0][1])
@@ -62,8 +62,8 @@ def generate_mask(shape, hole_size, hole_area=None, max_holes=1):
                 offset_y = random.randint(
                     harea_ymin, harea_ymin + harea_h - hole_h)
             else:
-                offset_x = random.randint(0, mask.shape[3] - hole_w)
-                offset_y = random.randint(0, mask.shape[2] - hole_h)
+                offsets = generate_area((hole_w, hole_h), (shape[3], shape[2]))
+                offset_x, offset_y = offsets
             mask[i, :, offset_y: offset_y + hole_h,
                  offset_x: offset_x + hole_w] = 1.0
     return mask
@@ -85,7 +85,7 @@ def generate_area(size, mask_size):
     harea_w, harea_h = size
     offset_x = random.randint(0, mask_w - harea_w)
     offset_y = random.randint(0, mask_h - harea_h)
-    return ((offset_x, offset_y), (harea_w, harea_h))
+    return ((offset_x, offset_y), size)
 
 
 def crop(x, area):
