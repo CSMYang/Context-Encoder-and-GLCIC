@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
 
 """
+This file contains the model implemented by us. 
 The util functions and layers used in the networks are on the very top of this file.
 The body for generator and discriminators are on the later part of this file.
 """
@@ -120,6 +121,7 @@ class LocalDiscriminator(nn.Module):
                       * (self.input_width // 32), 1024),
             nn.ReLU()
         )
+        self.loss = nn.BCELoss()
 
     def forward(self, x):
         return self.layers(x)
@@ -186,7 +188,7 @@ class ContextDiscriminator(nn.Module):
                 self.local_D.output_shape[-1] + self.global_D.out_shape[-1], 1),
             nn.Sigmoid()
         )
-        self.loss = torch.nn.BCELoss()
+        self.loss = nn.BCELoss()
 
     def forward(self, x):
         local_x, global_x = x
