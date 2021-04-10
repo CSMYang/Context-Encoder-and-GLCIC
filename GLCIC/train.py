@@ -252,6 +252,8 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
                             x = x.cuda()
                             mask = mask.cuda()
                         x_mask = x - x * mask + mpv * mask
+                        x_mask = x_mask.type(torch.float32).cuda()
+                        mask = mask.type(torch.float32).cuda()
                         input = torch.cat((x_mask, mask), dim=1)
                         output = model_cn(input)
                         completed = poisson_blend(x_mask, output, mask)
@@ -361,6 +363,8 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                             x = x.cuda()
                             mask = mask.cuda()
                         x_mask = x - x * mask + mpv * mask
+                        x_mask = x_mask.type(torch.float32).cuda()
+                        mask = mask.type(torch.float32).cuda()
                         input = torch.cat((x_mask, mask), dim=1)
                         output = model_cn(input)
                         completed = poisson_blend(x_mask, output, mask)
