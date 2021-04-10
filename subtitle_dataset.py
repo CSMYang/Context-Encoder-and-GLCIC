@@ -4,10 +4,11 @@ import os
 video_path = "last_jedi.mkv"
 directory_path = "C:/Users/chuan/Desktop/CSC413-Project/with_subtitle"
 img_name = 'with_subtitle'
-
+starting_frame = 0
 
 if __name__ == "__main__":
     video_stream = cv2.VideoCapture(video_path)
+    video_stream.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
     os.chdir(directory_path)
     i = 0
     while cv2.waitKey(1) < 0:
