@@ -171,6 +171,7 @@ def compute_mpv(train_set):
         pbar.update()
     mpv /= len(train_set.images)
     pbar.close()
+    np.save('GLCIC\mpv.npy', mpv)
     return mpv
 
 
@@ -197,6 +198,12 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
     # load pre-trained model
     if pretrained_cn:
         model_cn.load_state_dict(torch.load(pretrained_cn))
+        if args.data_parallel:
+            model_cn = torch.nn.DataParallel(model_cn)
+        model_cn.cuda()
+
+        opt_cn = Adadelta(model_cn.parameters())
+        return model_cn, opt_cn
     if args.data_parallel:
         model_cn = torch.nn.DataParallel(model_cn)
     if args.gpu:
@@ -257,16 +264,18 @@ def train_p1(args, pretrained_cn, train_loader, mpv, test_set, img_hole_size):
                         input = torch.cat((x_mask, mask), dim=1)
                         output = model_cn(input)
                         completed = poisson_blend(x_mask, output, mask)
-                        imgs = torch.cat((x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
+                        imgs = torch.cat(
+                            (x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
                         if args.gpu:
                             imgs = imgs.cuda()
                         imgpath = os.path.join(
                             args.result_dir, 'phase_1', 'step%d.png' % pbar.n)
                         model_cn_path = os.path.join(
-                            args.result_dir, 'phase_1', 'model_cn_step%d' % pbar.n)
+                            args.result_dir, 'phase_1', 'model_cn_step%d.pth' % pbar.n)
                         save_image(imgs, imgpath, nrow=len(x))
                         if args.data_parallel:
-                            torch.save(model_cn.module.state_dict(), model_cn_path)
+                            torch.save(model_cn.module.state_dict(),
+                                       model_cn_path)
                         else:
                             torch.save(model_cn.state_dict(), model_cn_path)
                     model_cn.train()
@@ -287,6 +296,13 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                                     architecture=args.arc)
     if pretrained_cd:
         model_cd.load_state_dict(torch.load(pretrained_cd))
+        if args.data_parallel:
+            model_cd = torch.nn.DataParallel(model_cd)
+        model_cd.cuda()
+        opt_cd = Adadelta(model_cd.parameters())
+
+        return model_cd, opt_cd
+
     if args.data_parallel:
         model_cd = torch.nn.DataParallel(model_cd)
     if args.gpu:
@@ -368,13 +384,14 @@ def train_p2(args, pretrained_cd, train_loader, mpv, test_set, model_cn, img_hol
                         input = torch.cat((x_mask, mask), dim=1)
                         output = model_cn(input)
                         completed = poisson_blend(x_mask, output, mask)
-                        imgs = torch.cat((x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
+                        imgs = torch.cat(
+                            (x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
                         if args.gpu:
                             imgs = imgs.cuda()
                         imgpath = os.path.join(
                             args.result_dir, 'phase_2', 'step%d.png' % pbar.n)
                         model_cd_path = os.path.join(
-                            args.result_dir, 'phase_2', 'model_cd_step%d' % pbar.n)
+                            args.result_dir, 'phase_2', 'model_cd_step%d.pth' % pbar.n)
                         save_image(imgs, imgpath, nrow=len(x))
                         if args.data_parallel:
                             torch.save(model_cd.module.state_dict(),
@@ -415,11 +432,12 @@ def train(args, pretrained_cn, pretrained_cd):
                               shuffle=True)
 
     # compute mpv (mean pixel value) of training dataset
-    if args.mpv:
-        mpv = np.array(args.mpv, dtype=np.float)
+    if args.mpv is not None:
+
+        mpv = args.mpv.astype(np.float)
     else:
         mpv = compute_mpv(train_set)
-
+    print("XD")
     # save training config
     mpv_json = []
     for i in range(3):
@@ -544,19 +562,22 @@ def train(args, pretrained_cn, pretrained_cd):
                         completed = poisson_blend(x_mask, output, mask)
                         if args.gpu:
                             completed = completed.cuda()
-                        imgs = torch.cat((x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
+                        imgs = torch.cat(
+                            (x.cpu(), x_mask.cpu(), completed.cpu()), dim=0)
                         if args.gpu:
                             imgs = imgs.cuda()
                         imgpath = os.path.join(
                             args.result_dir, 'phase_3', 'step%d.png' % pbar.n)
                         model_cn_path = os.path.join(
-                            args.result_dir, 'phase_3', 'model_cn_step%d' % pbar.n)
+                            args.result_dir, 'phase_3', 'model_cn_step%d.pth' % pbar.n)
                         model_cd_path = os.path.join(
-                            args.result_dir, 'phase_3', 'model_cd_step%d' % pbar.n)
+                            args.result_dir, 'phase_3', 'model_cd_step%d.pth' % pbar.n)
                         save_image(imgs, imgpath, nrow=len(x))
                         if args.data_parallel:
-                            torch.save(model_cn.module.state_dict(), model_cn_path)
-                            torch.save(model_cd.module.state_dict(), model_cd_path)
+                            torch.save(model_cn.module.state_dict(),
+                                       model_cn_path)
+                            torch.save(model_cd.module.state_dict(),
+                                       model_cd_path)
                         else:
                             torch.save(model_cn.state_dict(), model_cn_path)
                             torch.save(model_cd.state_dict(), model_cd_path)
@@ -568,6 +589,8 @@ def train(args, pretrained_cn, pretrained_cd):
 
 if __name__ == '__main__':
     args = AttrDict()
+
+    mpv = np.load('GLCIC\mpv.npy')
     # set hyperparameters
     args_dict = {
         "gpu": True,
@@ -575,12 +598,12 @@ if __name__ == '__main__':
         "result_dir": "./results/result/",
         "data_parallel": True,
         "recursive_search": False,
-        "steps_1": 1,
-        "steps_2": 1,
-        "steps_3": 1,
-        "snaperiod_1": 10000,
-        "snaperiod_2": 2000,
-        "snaperiod_3": 1,
+        "steps_1": 30000,
+        "steps_2": 30000,
+        "steps_3": 30000,
+        "snaperiod_1": 5000,
+        "snaperiod_2": 5000,
+        "snaperiod_3": 5000,
         "max_holes": 1,
         "hole_min_w": 48,
         "hole_max_w": 96,
@@ -591,12 +614,12 @@ if __name__ == '__main__':
         "bsize": 16,
         "bdivs": 1,
         "num_test_completions": 16,
-        "mpv": None,
+        "mpv": mpv,
         "alpha": 4e-4,
         "arc": 'celeba',  # 'celeba' or 'places2'
     }
     # set pretrained models if necessary
-    pretrained_cn = None
-    pretrained_cd = None
+    pretrained_cn = "results\\result\\phase_1\\model_cn_step30000.pth"
+    pretrained_cd = "results\\result\\phase_2\\model_cd_step30000.pth"
     args.update(args_dict)
     train(args, pretrained_cn, pretrained_cd)
