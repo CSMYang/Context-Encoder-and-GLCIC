@@ -16,7 +16,7 @@ def download_video(url, dest_dir, sub=True):
     Required to download FFMPEG. See https://www.ffmpeg.org/,
     https://github.com/ytdl-org/youtube-dl/blob/master/README.md#on-windows-how-should-i-set-up-ffmpeg-and-youtube-dl-where-should-i-put-the-exe-files for details.
     """
-    video_path = dest_dir + '%(title)s_%(ext)s.mp4'
+    video_path = dest_dir + '/%(title)s_%(ext)s.mp4'
     ydl_opts = {
         'outtmpl': video_path,
         'format': ' (bestvideo[width<=720][ext=mp4]/bestvideo)+bestaudio/best',
@@ -29,7 +29,7 @@ def download_video(url, dest_dir, sub=True):
         'subtitleslangs': ["en"],
         # 'postprocessor_args': ['embed-subs'],
         'postprocessors': [
-            # {'key': 'FFmpegSubtitlesConvertor', 'format': 'srt'},
+            {'key': 'FFmpegSubtitlesConvertor', 'format': 'srt'},
             {'key': 'FFmpegEmbedSubtitle'}],
         'keepvideo': True
     }
