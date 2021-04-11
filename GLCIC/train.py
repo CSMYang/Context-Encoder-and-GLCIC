@@ -14,7 +14,7 @@ import torch
 import numpy as np
 import cv2
 from tqdm import tqdm
-from model import CompletionNetwork, ContextDiscriminator
+from model_pretrained import CompletionNetwork, ContextDiscriminator
 from dataset import ImageDataset
 from torch.autograd import Variable
 
@@ -63,7 +63,7 @@ def generate_mask(shape, hole_size, hole_area=None, max_holes=1):
                     harea_ymin, harea_ymin + harea_h - hole_h)
             else:
                 offsets = generate_area((hole_w, hole_h), (shape[3], shape[2]))
-                offset_x, offset_y = offsets
+                offset_x, offset_y = offsets[0]
             mask[i, :, offset_y: offset_y + hole_h,
                  offset_x: offset_x + hole_w] = 1.0
     return mask

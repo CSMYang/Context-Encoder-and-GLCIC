@@ -4,7 +4,7 @@ import torch
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from PIL import Image
-from model import CompletionNetwork
+from model_pretrained import CompletionNetwork
 from train import poisson_blend, generate_mask
 from dataset import ImageDataset
 
@@ -60,10 +60,10 @@ if __name__ == "__main__":
     args = AttrDict()
     # set hyperparameters
     args_dict = {
-        "model": "./img_align_celeba/",
-        "config": "./results/result/",
-        "input_img": "", # input img
-        "output_img": "", # output img name
+        "model": "GLCIC\pretrained_model_cn",
+        "config": "GLCIC\config.json",
+        "input_img": "img_align_celeba\\test\\000003.jpg",  # input img
+        "output_img": "GLCIC\\result.jpg",  # output img name
         "max_holes": 5,
         "img_size": 160,
         "hole_min_w": 24,
