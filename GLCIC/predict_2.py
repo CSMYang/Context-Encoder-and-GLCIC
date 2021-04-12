@@ -4,10 +4,11 @@ import torch
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from PIL import Image
-from model_pretrained import CompletionNetwork
-from train import poisson_blend
+from model_pretrained import CompletionNetwork, ContextDiscriminator
+from train import poisson_blend, crop, generate_area
 from dataset import ImageDataset
 from detect_subtitle import get_area, generate_mask
+from vanilla_gradient import visualize_saliency_map
 
 
 class AttrDict(dict):
@@ -63,7 +64,7 @@ if __name__ == "__main__":
     args_dict = {
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
-        "input_img": "img_align_celeba\\test\\000003.jpg",  # input img
+        "input_img": "GLCIC\movie_caption.jpg",  # input img
         "output_img": "GLCIC\\result.jpg",  # output img name
         "max_holes": 5,
         "img_size": 160,
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     img = transforms.Resize(args.img_size)(img)
     # img = transforms.RandomCrop((args.img_size, args.img_size))(img)
     x = transforms.ToTensor()(img)
-    x = torch.unsqueeze(x, dim=0)
+    x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
 
     # create mask
     temp_path = "./test.png"
@@ -100,7 +101,6 @@ if __name__ == "__main__":
         shape=(1, 1, x.shape[2], x.shape[3]),
         area=get_area(temp_path)
     )
-    os.remove(temp_path)
 
     # inpaint
     model.eval()
@@ -109,6 +109,25 @@ if __name__ == "__main__":
         input = torch.cat((x_mask, mask), dim=1)
         output = model(input)
         inpainted = poisson_blend(x_mask, output, mask)
-        imgs = torch.cat((x, x_mask, inpainted), dim=0)
+        # imgs = torch.cat((x, x_mask, inpainted), dim=0)
+        imgs = inpainted
         save_image(imgs, args.output_img, nrow=3)
     print('output img was saved as %s.' % args.output_img)
+
+    CD = ContextDiscriminator(local_input_shape=(3, 96, 96),
+                              global_input_shape=(
+        3, 160, 160),
+        arc='celeba')
+    CD.load_state_dict(
+        state_dict=torch.load("GLCIC\pretrained_model_cd"))
+
+    CD = CD.cuda()
+    x, y, w, h = get_area(temp_path)
+    area = ((x, y), (w, h))
+    hole_area_fake = generate_area((96, 96),
+                                   (inpainted.shape[3], inpainted.shape[2]))
+
+    input_ld_fake = crop(inpainted, hole_area_fake)
+
+    visualize_saliency_map("GLCIC\\result.jpg", input_ld_fake, 160, 160, CD)
+    os.remove(temp_path)

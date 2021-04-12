@@ -3,9 +3,10 @@ from PIL import Image
 import torch
 from matplotlib import pyplot as plt
 from model_pretrained import ContextDiscriminator
+import numpy as np
 
 
-def visualize_saliency_map(img_path, input_width, input_height, model):
+def visualize_saliency_map(img_path, masked_img, input_width, input_height, model):
     """
     This function shows the saliency map of an image
     :param img_path: a string of the path to the image for visualization
@@ -26,18 +27,25 @@ def visualize_saliency_map(img_path, input_width, input_height, model):
     image.reshape(1, 3, input_height, input_width)
     image = torch.unsqueeze(image, dim=0)
     image = image.cuda()
+    image.retain_grad()
     image.requires_grad_()
+    masked_img = masked_img.cuda()
+    output = model((masked_img, image))
 
-    output = model(image)
     output_idx = output.argmax()
     output_max = output[0, output_idx]
     output_max.backward()
+
     saliency, _ = torch.max(image.grad.data.abs(), dim=1)
     saliency = saliency.reshape(input_height, input_width)
 
-    image = image.reshape(-1, input_height, input_width)
-    fig, ax = plt.subplot(1, 2)
-    ax[0].imshow(image.cpu().detach().numpy().transpose(1, 2, 0))
+    temp_img = image[0].reshape(-1, input_height, input_width)
+    temp_image_1 = torch.ones((3, 64, 64), dtype=int)
+    temp_image_1 = temp_img + 1
+    temp_image_1 *= 255/2
+    fig, ax = plt.subplots(1, 2)
+    ax[0].imshow(temp_image_1.cpu().detach(
+    ).numpy().astype(np.int).transpose(1, 2, 0))
     ax[0].axis('off')
     ax[1].imshow(saliency.cpu(), cmap='hot')
     ax[1].axis('off')
@@ -46,12 +54,12 @@ def visualize_saliency_map(img_path, input_width, input_height, model):
 
 
 if __name__ == "__main__":
+    pass
+    # CD = ContextDiscriminator(local_input_shape=(3, 96, 96),
+    #                           global_input_shape=(
+    #     3, 160, 160),
+    #     arc='celeba')
+    # CD.load_state_dict(
+    #     state_dict=torch.load("GLCIC\pretrained_model_cd"))
 
-    CD = ContextDiscriminator(local_input_shape=(3, 96, 96),
-                              global_input_shape=(
-        3, 160, 160),
-        arc='celeba')
-    CD.load_state_dict(
-        state_dict=torch.load("GLCIC\pretrained_model_cd"))
-
-    visualize_saliency_map("GLCIC\\result.jpg", 160, 160, CD)
+    # visualize_saliency_map("GLCIC\\result.jpg", 160, 160, CD)

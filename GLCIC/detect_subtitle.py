@@ -9,7 +9,7 @@ def get_area(img, thres=10000):
     https://stackoverflow.com/questions/37771263/detect-text-area-in-an-image-using-python-and-opencv
     """
     # Step 1: get binary image
-    image = img
+    image = cv2.imread(img)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     thresh = cv2.adaptiveThreshold(
@@ -52,7 +52,7 @@ def generate_mask(shape, area):
     """
     mask = torch.zeros(shape)
     x, y, w, h = area
-    mask[:, y: y + h, x: x + w, :] = 1.0
+    mask[:, :, y: y + h, x: x + w] = 1.0
     return mask
 
 
