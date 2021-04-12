@@ -57,10 +57,10 @@ def visualize_saliency_map(img_path, masked_img, input_width, input_height, mode
     ax[0][1].imshow(saliency.cpu(), cmap='hot')
     ax[0][1].axis('off')
 
-    ax[1][0].imshow(masked_img.cpu().detach(
-    ).numpy().astype(np.int).transpose(1, 2, 0))
+    ax[1][0].imshow(masked_img[0].cpu().detach(
+    ).numpy().astype(np.float32).transpose(1, 2, 0))
     ax[1][0].axis('off')
-    ax[1][1].imshow(saliency_2.cpu(), cmap='hot')
+    ax[1][1].imshow(saliency_2[0].cpu(), cmap='hot')
     ax[1][1].axis('off')
     plt.tight_layout()
     plt.show()

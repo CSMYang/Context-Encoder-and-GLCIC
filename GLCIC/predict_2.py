@@ -9,6 +9,8 @@ from train import poisson_blend, crop, generate_area
 from dataset import ImageDataset
 from detect_subtitle import get_area, generate_mask
 from vanilla_gradient import visualize_saliency_map
+from matplotlib import pyplot as plt
+import numpy as np
 
 
 class AttrDict(dict):
@@ -114,20 +116,25 @@ if __name__ == "__main__":
         save_image(imgs, args.output_img, nrow=3)
     print('output img was saved as %s.' % args.output_img)
 
-    CD = ContextDiscriminator(local_input_shape=(3, 96, 96),
+    x, y, w, h = get_area(temp_path)
+    while(y+96 > 160):
+        y -= 1
+    while(x+96 > 160):
+        x -= 1
+    area = ((x, y), (96, 96))
+    hole_area_fake = generate_area((96, 96),
+                                   (inpainted.shape[3], inpainted.shape[2]))
+
+    input_ld_fake = crop(inpainted, area)
+    CD = ContextDiscriminator(local_input_shape=input_ld_fake[0].shape,
                               global_input_shape=(
-        3, 160, 160),
-        arc='celeba')
+                                  3, 160, 160),
+                              arc='celeba')
     CD.load_state_dict(
         state_dict=torch.load("GLCIC\pretrained_model_cd"))
 
     CD = CD.cuda()
-    x, y, w, h = get_area(temp_path)
-    area = ((x, y), (w, h))
-    hole_area_fake = generate_area((96, 96),
-                                   (inpainted.shape[3], inpainted.shape[2]))
-
-    input_ld_fake = crop(inpainted, hole_area_fake)
-
+    plt.imshow(input_ld_fake[0].numpy().astype(np.float32).transpose(1, 2, 0))
+    plt.show()
     visualize_saliency_map("GLCIC\\result.jpg", input_ld_fake, 160, 160, CD)
     os.remove(temp_path)
