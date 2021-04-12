@@ -30,25 +30,41 @@ def visualize_saliency_map(img_path, masked_img, input_width, input_height, mode
     image.retain_grad()
     image.requires_grad_()
     masked_img = masked_img.cuda()
+    masked_img.retain_grad()
+    masked_img.requires_grad_()
     output = model((masked_img, image))
 
     output_idx = output.argmax()
     output_max = output[0, output_idx]
     output_max.backward()
 
+    masked_idx = masked_img.argmax()
+    masked_max = masked_img[0, masked_idx]
+    masked_max.backward()
+
     saliency, _ = torch.max(image.grad.data.abs(), dim=1)
     saliency = saliency.reshape(input_height, input_width)
+
+    saliency_2, _ = torch.max(masked_img.grad.data.abs(), dim=1)
 
     temp_img = image[0].reshape(-1, input_height, input_width)
     temp_image_1 = torch.ones((3, 64, 64), dtype=int)
     temp_image_1 = temp_img + 1
     temp_image_1 *= 255/2
-    fig, ax = plt.subplots(1, 2)
-    ax[0].imshow(temp_image_1.cpu().detach(
+
+    fig, ax = plt.subplots(2, 2)
+
+    ax[0][0].imshow(temp_image_1.cpu().detach(
     ).numpy().astype(np.int).transpose(1, 2, 0))
-    ax[0].axis('off')
-    ax[1].imshow(saliency.cpu(), cmap='hot')
-    ax[1].axis('off')
+    ax[0][0].axis('off')
+    ax[0][1].imshow(saliency.cpu(), cmap='hot')
+    ax[0][1].axis('off')
+
+    ax[1][0].imshow(masked_img.cpu().detach(
+    ).numpy().astype(np.int).transpose(1, 2, 0))
+    ax[1][0].axis('off')
+    ax[1][1].imshow(saliency_2.cpu(), cmap='hot')
+    ax[1][1].axis('off')
     plt.tight_layout()
     plt.show()
 
