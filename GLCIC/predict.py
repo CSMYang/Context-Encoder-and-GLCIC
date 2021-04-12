@@ -7,6 +7,7 @@ from PIL import Image
 from model_pretrained import CompletionNetwork
 from train import poisson_blend, generate_mask
 from dataset import ImageDataset
+# from detect_subtitle.py import *
 
 
 class AttrDict(dict):
@@ -21,8 +22,8 @@ def test_images(args, mpv, model):
     """
     # convert img to tensor
     transformed = transforms.Compose([
-        transforms.Resize(args.img_size),
-        transforms.RandomCrop((args.img_size, args.img_size)),
+        transforms.Resize((args.img_size, args.img_size)),
+        # transforms.RandomCrop((args.img_size, args.img_size)),
         transforms.ToTensor(),
     ])
     image_set = ImageDataset(os.path.join(args.data_dir, 'train'), transformed)
@@ -62,7 +63,7 @@ if __name__ == "__main__":
     args_dict = {
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
-        "input_img": "img_align_celeba\\test\\000003.jpg",  # input img
+        "input_img": "GLCIC\movie_caption.jpg",  # input img
         "output_img": "GLCIC\\result.jpg",  # output img name
         "max_holes": 5,
         "img_size": 160,
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     img = transforms.Resize(args.img_size)(img)
     img = transforms.RandomCrop((args.img_size, args.img_size))(img)
     x = transforms.ToTensor()(img)
-    x = torch.unsqueeze(x, dim=0)
+    x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
 
     # create mask
     mask = generate_mask(
@@ -102,6 +103,11 @@ if __name__ == "__main__":
         max_holes=args.max_holes,
     )
 
+    # img_path = "GLCIC\caption_masked.jpg"
+    # area = get_area(img_path)
+    # image = cv2.imread(img_path)
+    # mask = torch.Tensor(generate_mask(image.shape, area))
+
     # inpaint
     model.eval()
     with torch.no_grad():
@@ -109,6 +115,7 @@ if __name__ == "__main__":
         input = torch.cat((x_mask, mask), dim=1)
         output = model(input)
         inpainted = poisson_blend(x_mask, output, mask)
-        imgs = torch.cat((x, x_mask, inpainted), dim=0)
+        # imgs = torch.cat((x, x_mask, inpainted), dim=0)
+        imgs = inpainted
         save_image(imgs, args.output_img, nrow=3)
     print('output img was saved as %s.' % args.output_img)

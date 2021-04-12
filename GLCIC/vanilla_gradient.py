@@ -2,6 +2,7 @@ from torchvision import transforms
 from PIL import Image
 import torch
 from matplotlib import pyplot as plt
+from model_pretrained import ContextDiscriminator
 
 
 def visualize_saliency_map(img_path, input_width, input_height, model):
@@ -16,12 +17,14 @@ def visualize_saliency_map(img_path, input_width, input_height, model):
     transform = transforms.Compose([
         transforms.Resize(input_width),
         transforms.CenterCrop(input_width),
-        transforms.Normalize(),
-        transforms.ToTensor
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
     ])
 
     image = transform(image)
     image.reshape(1, 3, input_height, input_width)
+    image = torch.unsqueeze(image, dim=0)
     image = image.cuda()
     image.requires_grad_()
 
@@ -40,3 +43,15 @@ def visualize_saliency_map(img_path, input_width, input_height, model):
     ax[1].axis('off')
     plt.tight_layout()
     plt.show()
+
+
+if __name__ == "__main__":
+
+    CD = ContextDiscriminator(local_input_shape=(3, 96, 96),
+                              global_input_shape=(
+        3, 160, 160),
+        arc='celeba')
+    CD.load_state_dict(
+        state_dict=torch.load("GLCIC\pretrained_model_cd"))
+
+    visualize_saliency_map("GLCIC\\result.jpg", 160, 160, CD)
