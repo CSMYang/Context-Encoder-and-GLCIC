@@ -56,6 +56,45 @@ def generate_mask(shape, area):
     return mask
 
 
+def extract_subtitle(img):
+    """
+    get text region of the image.
+    https://www.programmersought.com/article/5117975415/
+    """
+    img = cv2.imread(img)
+    _, thresh = cv2.threshold(img, 220, 255, cv2.THRESH_BINARY)
+    # only focus on the bottom
+    x_end = int(2/3*img.shape[0])
+    thresh[:x_end, :, :] = 0
+    # print(thresh.shape)
+    # thresh = np.where(thresh < 5, 0, 255)
+    # thresh[thresh != 0] = 255
+    # print((thresh < 5).all())
+
+    dilate = cv2.dilate(thresh, (3, 3), iterations=3)
+
+    # cv2.imshow('thresh', thresh/255)
+    # cv2.imshow('dilate', dilate)
+    # cv2.waitKey()
+
+    return dilate
+
+
+def generate_mask_from_pos(shape, pos):
+    """
+    Generate mask in the given position
+    """
+    mask = torch.zeros(shape)
+    # x_range, y_range, _ = pos.shape
+    # for y in range(y_range):
+    #     for x in range(x_range):
+    #         if pos[x, y, 0] > 0:
+    #             mask[:, :, x, y] = 1.0
+    # print(torch.from_numpy(pos[:, :, 0]).shape)
+    mask[:, :] = torch.from_numpy(pos[:, :, 0])
+    return mask
+
+
 if __name__ == "__main__":
 
     # test get_area
