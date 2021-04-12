@@ -20,7 +20,6 @@ def visualize_saliency_map(img_path, masked_img, input_width, input_height, mode
         transforms.CenterCrop(input_width),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-
     ])
 
     image = transform(image)
@@ -29,18 +28,16 @@ def visualize_saliency_map(img_path, masked_img, input_width, input_height, mode
     image = image.cuda()
     image.retain_grad()
     image.requires_grad_()
+
     masked_img = masked_img.cuda()
     masked_img.retain_grad()
     masked_img.requires_grad_()
+
     output = model((masked_img, image))
 
     output_idx = output.argmax()
     output_max = output[0, output_idx]
     output_max.backward()
-
-    masked_idx = masked_img.argmax()
-    masked_max = masked_img[0, masked_idx]
-    masked_max.backward()
 
     saliency, _ = torch.max(image.grad.data.abs(), dim=1)
     saliency = saliency.reshape(input_height, input_width)
