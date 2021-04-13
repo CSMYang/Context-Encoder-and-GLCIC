@@ -7,10 +7,12 @@ from PIL import Image
 from model_pretrained import CompletionNetwork, ContextDiscriminator
 from train import poisson_blend, crop, generate_area
 from dataset import ImageDataset
-from detect_subtitle import get_area, generate_mask
+from detect_subtitle import get_area, generate_mask, extract_subtitle, generate_mask_from_pos
 from vanilla_gradient import visualize_saliency_map
 from matplotlib import pyplot as plt
 import numpy as np
+import glob
+import cv2
 
 
 class AttrDict(dict):
@@ -19,32 +21,41 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def test_images(args, mpv, model):
+def make_video(args, mpv, model):
     """
-    Predict imgs from dir
+    Extract subtitles for all images from dir and make the video.
     """
-    # convert img to tensor
-    transformed = transforms.Compose([
-        transforms.Resize(args.img_size),
-        transforms.RandomCrop((args.img_size, args.img_size)),
-        transforms.ToTensor(),
-    ])
-    image_set = ImageDataset(os.path.join(args.data_dir, 'train'), transformed)
-    mask_path = args.output_img + "/mask"
-    output_path = args.output_img + "/output"
+    # read images
+    img_array = []
+    for filename in glob.glob('{}/*.{}'.format(args.input_img, args.img_type)):
+        img = cv2.imread(filename)
+        img_array.append(img)
+    # mask_path = args.output_img + "/mask"
+    # output_path = args.output_img + "/output"
+    size = (img_array[0].shape[0], img_array[0].shape[1])
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+    out = cv2.VideoWriter('{}/test.avi'.format(args.output_img), fourcc, 3, size)
 
-    for i in range(image_set):
-        x = torch.unsqueeze(image_set[i], dim=0)
+    for i in range(img_array):
+        img = Image.open(args.input_img)
+        # img = transforms.Resize(args.img_size)(img)
+        # img = transforms.RandomCrop((args.img_size, args.img_size))(img)
+        x = transforms.ToTensor()(img)
+        x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
 
         # create mask
-        mask = generate_mask(
-            shape=(1, 1, x.shape[2], x.shape[3]),
-            hole_size=(
-                (args.hole_min_w, args.hole_max_w),
-                (args.hole_min_h, args.hole_max_h),
-            ),
-            max_holes=args.max_holes,
-        )
+        temp_path = "./test.png"
+        save_image(x, temp_path, nrow=1)
+        if args.method:
+            mask = generate_mask(
+                shape=(1, 1, x.shape[2], x.shape[3]),
+                area=get_area(temp_path)
+            )
+        else:
+            mask = generate_mask_from_pos(
+                shape=(1, 1, x.shape[2], x.shape[3]),
+                pos=extract_subtitle(temp_path)
+            )
 
         # inpaint
         model.eval()
@@ -53,11 +64,12 @@ def test_images(args, mpv, model):
             input = torch.cat((x_mask, mask), dim=1)
             output = model(input)
             inpainted = poisson_blend(x_mask, output, mask)
-            maskpath = os.path.join(mask_path, 'test_%d.png' % i)
-            outputpath = os.path.join(output_path, 'test_%d.png' % i)
-            save_image(imgs, maskpath)
-            save_image(inpainted, outputpath)
-    print('output img was saved as %s.' % args.output_img)
+            # imgs = torch.cat((x, x_mask, inpainted), dim=0)
+            # imgs = inpainted
+        #     save_image(imgs, args.output_img, nrow=3)
+        # print('output img was saved as %s.' % args.output_img)
+            out.write(inpainted)
+    out.release()
 
 
 if __name__ == "__main__":
@@ -67,7 +79,9 @@ if __name__ == "__main__":
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
         "input_img": "GLCIC\movie_caption.jpg",  # input img
+        "img_type": "png",
         "output_img": "GLCIC\\result.jpg",  # output img name
+        "method": True, # True for generate mask, False for generate mask from pos
         "max_holes": 5,
         "img_size": 160,
         "hole_min_w": 24,
