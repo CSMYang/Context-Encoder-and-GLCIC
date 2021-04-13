@@ -28,16 +28,15 @@ def make_video(args, mpv, model):
     # read images
     img_array = []
     for filename in glob.glob('{}/*.{}'.format(args.input_img, args.img_type)):
-        img = cv2.imread(filename)
-        img_array.append(img)
+        img_array.append(filename)
     # mask_path = args.output_img + "/mask"
     # output_path = args.output_img + "/output"
     size = (img_array[0].shape[0], img_array[0].shape[1])
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
     out = cv2.VideoWriter('{}/test.avi'.format(args.output_img), fourcc, 3, size)
 
-    for i in range(img_array):
-        img = Image.open(args.input_img)
+    for img_path in range(img_array):
+        img = Image.open(img_path)
         # img = transforms.Resize(args.img_size)(img)
         # img = transforms.RandomCrop((args.img_size, args.img_size))(img)
         x = transforms.ToTensor()(img)
@@ -69,6 +68,7 @@ def make_video(args, mpv, model):
         #     save_image(imgs, args.output_img, nrow=3)
         # print('output img was saved as %s.' % args.output_img)
             out.write(inpainted)
+            os.remove(temp_path)
     out.release()
 
 
