@@ -28,4 +28,4 @@ def ssim(real_img, generated_img):
     img_1 = real_img.cpu().numpy()
     img_2 = generated_img.cpu().numpy()
 
-    return structural_similarity(img_1, img_2, data_range=img_1.max() - img_1.min())
+    return structural_similarity(img_1, img_2, data_range=img_1.max() - img_1.min(), multichannel=True)

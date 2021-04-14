@@ -16,7 +16,7 @@ def get_area(img, thres=10000):
         blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 30)
 
     # Step 2: combine adjacent text
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
     dilate = cv2.dilate(thresh, kernel, iterations=4)
 
     # Step 3: find appropriate subtitle area
@@ -53,6 +53,16 @@ def generate_mask(shape, area):
     mask = torch.zeros(shape)
     x, y, w, h = area
     mask[:, :, y: y + h, x: x + w] = 1.0
+    return mask
+
+
+def generate_mask_with_3_dimension(shape, area):
+    """
+    Generate mask in the given area
+    """
+    mask = torch.zeros(shape)
+    x, y, w, h = area
+    mask[y: y + h, x: x + w, :] = 1.0
     return mask
 
 
@@ -95,6 +105,20 @@ def generate_mask_from_pos(shape, pos):
     return mask
 
 
+def get_masked_area(img_path):
+    x, y, w, h = get_area(img_path)
+    image = cv2.imread(img_path)
+    cv2.rectangle(image, (x, y), (x + w, y + h), (36, 255, 12), 3)
+    # cv2.imshow('image', image)
+    # cv2.waitKey()
+    cv2.imwrite("./temp.jpg", image)
+
+    img_path = "./temp.jpg"
+    area = get_area(img_path)
+
+    return area
+
+
 if __name__ == "__main__":
 
     # test get_area
@@ -117,19 +141,19 @@ if __name__ == "__main__":
     # cv2.imshow('image', result)
     # cv2.waitKey()
 
-    img_path = "GLCIC\movie_caption.jpg"
+    img_path = "GLCIC\with caption.PNG"
     x, y, w, h = get_area(img_path)
     image = cv2.imread(img_path)
     cv2.rectangle(image, (x, y), (x + w, y + h), (36, 255, 12), 3)
     # cv2.imshow('image', image)
     # cv2.waitKey()
-    cv2.imwrite("GLCIC\caption_masked.jpg", image)
+    cv2.imwrite("GLCIC\with caption_masked.jpg", image)
 
-    img_path = "GLCIC\caption_masked.jpg"
+    img_path = "GLCIC\with caption_masked.jpg"
     area = get_area(img_path)
     image = cv2.imread(img_path)
-    mask = generate_mask(image.shape, area)
-    result = np.where(mask, 1, image)
+    mask = generate_mask_with_3_dimension(image.shape, area)
+    result = np.where(mask == 1, 1, image)
 
-    cv2.imwrite("GLCIC\caption_masked_filled.jpg",
+    cv2.imwrite("GLCIC\with caption_masked_filled.jpg",
                 result)

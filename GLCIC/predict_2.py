@@ -7,12 +7,11 @@ from PIL import Image
 from model_pretrained import CompletionNetwork, ContextDiscriminator
 from train import poisson_blend, crop, generate_area
 from dataset import ImageDataset
-from detect_subtitle import get_area, generate_mask, extract_subtitle, generate_mask_from_pos
+from detect_subtitle import get_area, generate_mask, get_masked_area
 from vanilla_gradient import visualize_saliency_map
 from matplotlib import pyplot as plt
 import numpy as np
-import glob
-import cv2
+from evaluation import ssim
 
 
 class AttrDict(dict):
@@ -21,40 +20,32 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def make_video(args, mpv, model):
+def test_images(args, mpv, model):
     """
-    Extract subtitles for all images from dir and make the video.
+    Predict imgs from dir
     """
-    # read images
-    img_array = []
-    for filename in glob.glob('{}/*.{}'.format(args.input_img, args.img_type)):
-        img_array.append(filename)
-    # mask_path = args.output_img + "/mask"
-    # output_path = args.output_img + "/output"
-    size = (img_array[0].shape[0], img_array[0].shape[1])
-    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-    out = cv2.VideoWriter('{}/test.avi'.format(args.output_img), fourcc, 3, size)
+    # convert img to tensor
+    transformed = transforms.Compose([
+        transforms.Resize(args.img_size),
+        transforms.RandomCrop((args.img_size, args.img_size)),
+        transforms.ToTensor(),
+    ])
+    image_set = ImageDataset(os.path.join(args.data_dir, 'train'), transformed)
+    mask_path = args.output_img + "/mask"
+    output_path = args.output_img + "/output"
 
-    for img_path in range(img_array):
-        img = Image.open(img_path)
-        # img = transforms.Resize(args.img_size)(img)
-        # img = transforms.RandomCrop((args.img_size, args.img_size))(img)
-        x = transforms.ToTensor()(img)
-        x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
+    for i in range(image_set):
+        x = torch.unsqueeze(image_set[i], dim=0)
 
         # create mask
-        temp_path = "./test.png"
-        save_image(x, temp_path, nrow=1)
-        if args.method:
-            mask = generate_mask(
-                shape=(1, 1, x.shape[2], x.shape[3]),
-                area=get_area(temp_path)
-            )
-        else:
-            mask = generate_mask_from_pos(
-                shape=(1, 1, x.shape[2], x.shape[3]),
-                pos=extract_subtitle(temp_path)
-            )
+        mask = generate_mask(
+            shape=(1, 1, x.shape[2], x.shape[3]),
+            hole_size=(
+                (args.hole_min_w, args.hole_max_w),
+                (args.hole_min_h, args.hole_max_h),
+            ),
+            max_holes=args.max_holes,
+        )
 
         # inpaint
         model.eval()
@@ -63,13 +54,20 @@ def make_video(args, mpv, model):
             input = torch.cat((x_mask, mask), dim=1)
             output = model(input)
             inpainted = poisson_blend(x_mask, output, mask)
-            # imgs = torch.cat((x, x_mask, inpainted), dim=0)
-            # imgs = inpainted
-        #     save_image(imgs, args.output_img, nrow=3)
-        # print('output img was saved as %s.' % args.output_img)
-            out.write(inpainted)
-            os.remove(temp_path)
-    out.release()
+            maskpath = os.path.join(mask_path, 'test_%d.png' % i)
+            outputpath = os.path.join(output_path, 'test_%d.png' % i)
+            save_image(imgs, maskpath)
+            save_image(inpainted, outputpath)
+    print('output img was saved as %s.' % args.output_img)
+
+
+def image_convert_shape(image):
+    temp_image = torch.zeros((image.shape[1], image.shape[2], image.shape[0]))
+    temp_image[:, :, 0] = image[0]
+    temp_image[:, :, 1] = image[1]
+    temp_image[:, :, 2] = image[2]
+
+    return temp_image
 
 
 if __name__ == "__main__":
@@ -78,12 +76,11 @@ if __name__ == "__main__":
     args_dict = {
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
-        "input_img": "GLCIC\movie_caption.jpg",  # input img
-        "img_type": "png",
-        "output_img": "GLCIC\\result.jpg",  # output img name
-        "method": True, # True for generate mask, False for generate mask from pos
+        "input_img": "GLCIC\with caption.PNG",  # input img
+        "output_img": "GLCIC\\result1.jpg",  # output img name
+        "input_img2": "GLCIC\without caption.PNG",
         "max_holes": 5,
-        "img_size": 160,
+        "img_size": 500,
         "hole_min_w": 24,
         "hole_max_w": 46,
         "hole_min_h": 24,
@@ -105,50 +102,70 @@ if __name__ == "__main__":
     # =============================================
     # convert img to tensor
     img = Image.open(args.input_img)
-    img = transforms.Resize(args.img_size)(img)
+    img = transforms.Resize((args.img_size))(img)
     # img = transforms.RandomCrop((args.img_size, args.img_size))(img)
     x = transforms.ToTensor()(img)
     x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
 
     # create mask
-    temp_path = "./test.png"
+    temp_path = "GLCIC\\test.jpg"
+    area = get_masked_area(temp_path)
     save_image(x, temp_path, nrow=1)
     mask = generate_mask(
         shape=(1, 1, x.shape[2], x.shape[3]),
-        area=get_area(temp_path)
+        area=area
     )
 
     # inpaint
     model.eval()
     with torch.no_grad():
         x_mask = x - x * mask + mpv * mask
+        save_image(x_mask, temp_path, nrow=1)
         input = torch.cat((x_mask, mask), dim=1)
         output = model(input)
         inpainted = poisson_blend(x_mask, output, mask)
         # imgs = torch.cat((x, x_mask, inpainted), dim=0)
-        imgs = inpainted
+        imgs = inpainted.clone()
         save_image(imgs, args.output_img, nrow=3)
     print('output img was saved as %s.' % args.output_img)
 
-    x, y, w, h = get_area(temp_path)
-    while(y+96 > 160):
-        y -= 1
-    while(x+96 > 160):
-        x -= 1
-    area = ((x, y), (96, 96))
-    hole_area_fake = generate_area((96, 96),
-                                   (inpainted.shape[3], inpainted.shape[2]))
+    # saliency map
 
-    input_ld_fake = crop(inpainted, area)
-    CD = ContextDiscriminator(local_input_shape=input_ld_fake[0].shape,
-                              global_input_shape=(
-                                  3, 160, 160),
-                              arc='celeba')
-    CD.load_state_dict(
-        state_dict=torch.load("GLCIC\pretrained_model_cd"))
+    # x, y, w, h = get_area(temp_path)
+    # while(y+96 > 160):
+    #     y -= 1
+    # while(x+96 > 160):
+    #     x -= 1
+    # area = ((x, y), (96, 96))
+    # hole_area_fake = generate_area((96, 96),
+    #                                (inpainted.shape[3], inpainted.shape[2]))
 
-    CD = CD.cuda()
-    plt.imshow(input_ld_fake[0].numpy().astype(np.float32).transpose(1, 2, 0))
-    plt.show()
-    visualize_saliency_map("GLCIC\\result.jpg", input_ld_fake, 160, 160, CD)
-    os.remove(temp_path)
+    # input_ld_fake = crop(inpainted, area)
+    # CD = ContextDiscriminator(local_input_shape=input_ld_fake[0].shape,
+    #                           global_input_shape=(
+    #                               3, 160, 160),
+    #                           arc='celeba')
+    # CD.load_state_dict(
+    #     state_dict=torch.load("GLCIC\pretrained_model_cd"))
+
+    # CD = CD.cuda()
+    # plt.imshow(input_ld_fake[0].numpy().astype(np.float32).transpose(1, 2, 0))
+    # plt.show()
+    # visualize_saliency_map("GLCIC\\result.jpg", input_ld_fake, 160, 160, CD)
+    # os.remove(temp_path)
+
+    # ssim
+    x1, y, w, h = area
+    image1 = image_convert_shape(inpainted[0, :, y: y + h, x1: x1 + w])
+    image2 = image_convert_shape(x[0, :, y: y + h, x1: x1 + w])
+    print(ssim(image1, image2))
+
+    img = Image.open(args.input_img2)
+    img = transforms.Resize((args.img_size))(img)
+    # img = transforms.RandomCrop((args.img_size, args.img_size))(img)
+    x = transforms.ToTensor()(img)
+    x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
+    temp_path = "GLCIC\\ssim_compare1.jpg"
+    save_image(x, temp_path, nrow=3)
+    temp_path = "GLCIC\\ssim_compare2.jpg"
+    save_image(inpainted, temp_path, nrow=3)
