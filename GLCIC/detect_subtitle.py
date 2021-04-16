@@ -72,7 +72,7 @@ def extract_subtitle(img):
     https://www.programmersought.com/article/5117975415/
     """
     img = cv2.imread(img)
-    _, thresh = cv2.threshold(img, 220, 255, cv2.THRESH_BINARY)
+    _, thresh = cv2.threshold(img, 210, 255, cv2.THRESH_BINARY)
     # only focus on the bottom
     x_end = int(2/3*img.shape[0])
     thresh[:x_end, :, :] = 0
@@ -80,12 +80,15 @@ def extract_subtitle(img):
     # thresh = np.where(thresh < 5, 0, 255)
     # thresh[thresh != 0] = 255
     # print((thresh < 5).all())
+    kernel = np.ones((3, 3), np.uint8)
+    dilate = cv2.dilate(thresh, kernel, iterations=2)
 
-    dilate = cv2.dilate(thresh, (3, 3), iterations=3)
+    cv2.imshow('thresh', thresh/255)
 
-    # cv2.imshow('thresh', thresh/255)
-    # cv2.imshow('dilate', dilate)
-    # cv2.waitKey()
+    cv2.imshow('dilate', dilate)
+
+    cv2.waitKey()
+    dilate[dilate != 0] = 1.0
 
     return dilate
 
@@ -101,6 +104,7 @@ def generate_mask_from_pos(shape, pos):
     #         if pos[x, y, 0] > 0:
     #             mask[:, :, x, y] = 1.0
     # print(torch.from_numpy(pos[:, :, 0]).shape)
+
     mask[:, :] = torch.from_numpy(pos[:, :, 0])
     return mask
 

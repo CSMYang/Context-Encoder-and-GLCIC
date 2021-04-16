@@ -76,10 +76,10 @@ if __name__ == "__main__":
     args_dict = {
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
-        "input_img": "GLCIC\with caption.PNG",  # input img
+        "input_img": "GLCIC\movie_caption.jpg",  # input img
         "output_img": "GLCIC\\result1.jpg",  # output img name
-        "input_img2": "GLCIC\without caption.PNG",
-        "method": False, # True for the first method, False for the second method
+        "input_img2": "GLCIC\movie_caption.jpg",
+        "method": False,  # True for the first method, False for the second method
         "max_holes": 5,
         "img_size": 500,
         "hole_min_w": 24,
@@ -124,16 +124,20 @@ if __name__ == "__main__":
             pos=area
         )
 
+    plt.imshow(mask[0][:, :].squeeze().numpy().astype(
+        np.float32), cmap='Greys')
+    plt.show()
     # inpaint
     model.eval()
     with torch.no_grad():
+
         x_mask = x - x * mask + mpv * mask
         save_image(x_mask, temp_path, nrow=1)
         input = torch.cat((x_mask, mask), dim=1)
         output = model(input)
         inpainted = poisson_blend(x_mask, output, mask)
-        # imgs = torch.cat((x, x_mask, inpainted), dim=0)
-        imgs = inpainted.clone()
+        imgs = torch.cat((x, x_mask, inpainted), dim=0)
+        # imgs = inpainted.clone()
         save_image(imgs, args.output_img, nrow=3)
     print('output img was saved as %s.' % args.output_img)
 
@@ -163,10 +167,10 @@ if __name__ == "__main__":
     # os.remove(temp_path)
 
     # ssim
-    x1, y, w, h = area
-    image1 = image_convert_shape(inpainted[0, :, y: y + h, x1: x1 + w])
-    image2 = image_convert_shape(x[0, :, y: y + h, x1: x1 + w])
-    print(ssim(image1, image2))
+    # x1, y, w, h = area
+    # image1 = image_convert_shape(inpainted[0, :, y: y + h, x1: x1 + w])
+    # image2 = image_convert_shape(x[0, :, y: y + h, x1: x1 + w])
+    # print(ssim(image1, image2))
 
     img = Image.open(args.input_img2)
     img = transforms.Resize((args.img_size))(img)
