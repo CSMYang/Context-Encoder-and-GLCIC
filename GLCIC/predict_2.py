@@ -33,8 +33,7 @@ def make_video(args, mpv, model):
         img_array.append(img)
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
     size = (img_array[0].shape[0], img_array[0].shape[1])
-    out = cv2.VideoWriter(
-        '{}/test.avi'.format(args.output_dir), fourcc, 3, size)
+    out = cv2.VideoWriter('{}/test.avi'.format(args.output_dir), fourcc, 3, size)
     # transformed = transforms.Compose([
     #     transforms.Resize(args.img_size),
     #     transforms.RandomCrop((args.img_size, args.img_size)),
@@ -106,8 +105,8 @@ if __name__ == "__main__":
         "input_img": "GLCIC\movie_caption.jpg",  # input img
         "output_img": "GLCIC\\result1.jpg",  # output img name
         "input_img2": "GLCIC\movie_caption.jpg",
-        "input_dir": "",  # input img directory
-        "output_dir": "",  # output video
+        "input_dir": "", # input img directory
+        "output_dir": "", # output video
         "method": False,  # True for the first method, False for the second method
         "max_holes": 5,
         "img_size": 500,
