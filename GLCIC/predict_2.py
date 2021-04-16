@@ -7,7 +7,7 @@ from PIL import Image
 from model_pretrained import CompletionNetwork, ContextDiscriminator
 from train import poisson_blend, crop, generate_area
 from dataset import ImageDataset
-from detect_subtitle import get_area, generate_mask, get_masked_area
+from detect_subtitle import get_area, generate_mask, get_masked_area, extract_subtitle, generate_mask_from_pos
 from vanilla_gradient import visualize_saliency_map
 from matplotlib import pyplot as plt
 import numpy as np
@@ -79,6 +79,7 @@ if __name__ == "__main__":
         "input_img": "GLCIC\with caption.PNG",  # input img
         "output_img": "GLCIC\\result1.jpg",  # output img name
         "input_img2": "GLCIC\without caption.PNG",
+        "method": False, # True for the first method, False for the second method
         "max_holes": 5,
         "img_size": 500,
         "hole_min_w": 24,
@@ -109,12 +110,19 @@ if __name__ == "__main__":
 
     # create mask
     temp_path = "GLCIC\\test.jpg"
-    area = get_masked_area(temp_path)
     save_image(x, temp_path, nrow=1)
-    mask = generate_mask(
-        shape=(1, 1, x.shape[2], x.shape[3]),
-        area=area
-    )
+    if args.method:
+        area = get_masked_area(temp_path)
+        mask = generate_mask(
+            shape=(1, 1, x.shape[2], x.shape[3]),
+            area=area
+        )
+    else:
+        area = extract_subtitle(temp_path)
+        mask = generate_mask_from_pos(
+            shape=(1, 1, x.shape[2], x.shape[3]),
+            pos=area
+        )
 
     # inpaint
     model.eval()
