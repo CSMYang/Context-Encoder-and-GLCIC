@@ -123,13 +123,13 @@ if __name__ == '__main__':
     # load state dict
 
     Gen_optimizer.load_state_dict(torch.load(
-        "ContextEncoder\model\GenOptimizer\GenOptim_99_day1.pth"))
+        "ContextEncoder\model\GenOptimizer\GenOptim_70_day3.pth"))
     Dis_optimizer.load_state_dict(torch.load(
-        "ContextEncoder\model\DisOptimizer\DisOptim_99_day1.pth"))
+        "ContextEncoder\model\DisOptimizer\DisOptim_70_day3.pth"))
     Discriminator.load_state_dict(torch.load(
-        "ContextEncoder\model\Discriminator\Discriminator_99_day1.pth"))
+        "ContextEncoder\model\Discriminator\Discriminator_70_day3.pth"))
     Generator.load_state_dict(torch.load(
-        "ContextEncoder\model\Generator\Generator_99_day1.pth"))
+        "ContextEncoder\model\Generator\Generator_70_day3.pth"))
     for epoch in range(args_dict["epoches"]):
         for i, image in enumerate(dataloader):
             dataclass = DataProcess(image, 64)
@@ -139,17 +139,18 @@ if __name__ == '__main__':
             # train discriminator
             Dis_optimizer.zero_grad()
 
-            output = Discriminator(real_image.cuda()).cuda()
+            output = Discriminator(masked_image.cuda()).cuda()
             real_label = torch.ones_like(output).cuda()
-            real_loss = adversarial_loss(output, torch.ones_like(output))
+            real_loss = adversarial_loss(output, real_label)
             # D_x = torch.mean(real_loss)
 
             fake = Generator(real_image).cuda()
-            fake_label = torch.zeros_like(fake).cuda()
-            fake_loss = adversarial_loss(fake, fake_label)
+            fake_generated_output_D = Discriminator(fake.cuda()).cuda()
+            fake_label = torch.zeros_like(fake_generated_output_D).cuda()
+            fake_loss = adversarial_loss(fake_generated_output_D, fake_label)
 
             # detach or not?
-            DGX = Discriminator(fake).cuda()
+
             # D_G_z1 = torch.mean(fake_loss)
 
             total_loss = real_loss + fake_loss
@@ -162,12 +163,15 @@ if __name__ == '__main__':
             # fake labels are real for generator loss accordin to paper implementation
 
             Gen_optimizer.zero_grad()
+
+            fake = Generator(real_image).cuda()
+            DGX = Discriminator(fake).cuda()
             real_label = torch.ones_like(DGX)
             G_adv_loss = adversarial_loss(DGX, real_label).cuda()
 
             G_pixel = pixelwise_loss(fake, masked_image).cuda()
 
-            G_total_loss = 0.0001*G_adv_loss + 0.999*G_pixel
+            G_total_loss = 0.001*G_adv_loss + 0.999*G_pixel
 
             G_total_loss.backward()
             Gen_optimizer.step()
@@ -176,16 +180,16 @@ if __name__ == '__main__':
                   "G total loss", G_total_loss.item())
             # save check point
             if(i % 100 == 0):
-                save_sample_image(Generator, real_image, i, epoch, day=2)
+                save_sample_image(Generator, real_image, i, epoch, day=4)
 
         Gpath = os.path.join('ContextEncoder\model\Generator',
-                             'Generator_{0}_day{1}.pth'.format(epoch, 2))
+                             'Generator.pth')
         Dpath = os.path.join('ContextEncoder\model\Discriminator',
-                             'Discriminator_{0}_day{1}.pth'.format(epoch, 2))
+                             'Discriminator.pth')
         DisoptimizerPath = os.path.join('ContextEncoder\model\DisOptimizer',
-                                        'DisOptim_{0}_day{1}.pth'.format(epoch, 2))
+                                        'DisOptim.pth')
         GenoptimizerPath = os.path.join('ContextEncoder\model\GenOptimizer',
-                                        'GenOptim_{0}_day{1}.pth'.format(epoch, 2))
+                                        'GenOptim.pth')
         torch.save(Generator.state_dict(), Gpath)
         torch.save(Discriminator.state_dict(), Dpath)
         torch.save(Gen_optimizer.state_dict(), GenoptimizerPath)

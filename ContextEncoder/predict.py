@@ -181,7 +181,7 @@ if __name__ == '__main__':
     # load discriminator model
     Discriminator = Discriminator()
     Discriminator.load_state_dict(
-        torch.load("ContextEncoder\model\Discriminator\Discriminator_0_day2.pth"))
+        torch.load("ContextEncoder\model\Discriminator\Discriminator.pth"))
     # visualize_saliency_map(
     #     "ContextEncoder\Result\day1\sample-000099 -001400.png", 64, 64, Discriminator)
 
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     ])
     Generator = Generator().cuda()
     Generator.load_state_dict(
-        torch.load("ContextEncoder\model\Generator\Generator_99_day1.pth")
+        torch.load("ContextEncoder\model\Generator\Generator.pth")
     )
     # read image in folder
     train_set = ImageDataset("ContextEncoder\\testing_image\\real",
@@ -214,7 +214,7 @@ if __name__ == '__main__':
     #                                            shuffle=False, num_workers=int(1))
 
     for i, img in enumerate(train_loader):
-        if(i == 0):
+        if(i == 1):
             image = img
             break
 
@@ -231,20 +231,20 @@ if __name__ == '__main__':
     result = perdict(Generator, temp_img)
 
     # real masked image
-    temp_temp_image = torch.ones((128, 128, 3))
+    temp_temp_image = torch.zeros((128, 128, 3))
     temp_temp_image[:, :, 0] = temp_img[0][0]
     temp_temp_image[:, :, 1] = temp_img[0][1]
     temp_temp_image[:, :, 2] = temp_img[0][2]
-    temp_temp_image_1 = torch.ones((128, 128, 3), dtype=int)
+    temp_temp_image_1 = torch.zeros((128, 128, 3), dtype=int)
     temp_temp_image_1 = temp_temp_image + 1
     temp_temp_image_1 *= 255/2
 
     # real image
-    real_real_image = torch.ones((128, 128, 3))
+    real_real_image = torch.zeros((128, 128, 3))
     real_real_image[:, :, 0] = real_image[0][0]
     real_real_image[:, :, 1] = real_image[0][1]
     real_real_image[:, :, 2] = real_image[0][2]
-    real_real_image_1 = torch.ones((128, 128, 3), dtype=int)
+    real_real_image_1 = torch.zeros((128, 128, 3), dtype=int)
     real_real_image_1 = real_real_image + 1
     real_real_image_1 *= 255/2
 
