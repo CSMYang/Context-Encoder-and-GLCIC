@@ -76,9 +76,9 @@ if __name__ == "__main__":
     args_dict = {
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
-        "input_img": "GLCIC\movie_caption.jpg",  # input img
+        "input_img": "GLCIC\\netflix_2.png",  # input img
         "output_img": "GLCIC\\result1.jpg",  # output img name
-        "input_img2": "GLCIC\movie_caption.jpg",
+        "input_img2": "GLCIC\\netflix_2.png",
         "method": False,  # True for the first method, False for the second method
         "max_holes": 5,
         "img_size": 500,

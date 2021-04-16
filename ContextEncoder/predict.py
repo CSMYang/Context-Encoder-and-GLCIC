@@ -214,7 +214,7 @@ if __name__ == '__main__':
     #                                            shuffle=False, num_workers=int(1))
 
     for i, img in enumerate(train_loader):
-        if(i == 1):
+        if(i == 2):
             image = img
             break
 

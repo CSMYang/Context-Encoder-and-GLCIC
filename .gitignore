@@ -12,7 +12,8 @@ ContextEncoder/Dataset/cifar-10-batches-py/data_batch_5
 ContextEncoder/Dataset/cifar-10-python.tar.gz
 *.png
 *.pth
-*.jpg
+**/*.jpg
+!Testing Result/**
 *.cc
 *.hh
 *.m

@@ -72,7 +72,7 @@ def extract_subtitle(img):
     https://www.programmersought.com/article/5117975415/
     """
     img = cv2.imread(img)
-    _, thresh = cv2.threshold(img, 210, 255, cv2.THRESH_BINARY)
+    _, thresh = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY)
     # only focus on the bottom
     x_end = int(2/3*img.shape[0])
     thresh[:x_end, :, :] = 0
