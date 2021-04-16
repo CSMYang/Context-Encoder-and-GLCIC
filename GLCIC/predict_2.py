@@ -12,6 +12,8 @@ from vanilla_gradient import visualize_saliency_map
 from matplotlib import pyplot as plt
 import numpy as np
 from evaluation import ssim
+import glob
+import cv2
 
 
 class AttrDict(dict):
@@ -20,45 +22,69 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def test_images(args, mpv, model):
+def make_video(args, mpv, model):
     """
     Predict imgs from dir
     """
     # convert img to tensor
-    transformed = transforms.Compose([
-        transforms.Resize(args.img_size),
-        transforms.RandomCrop((args.img_size, args.img_size)),
-        transforms.ToTensor(),
-    ])
-    image_set = ImageDataset(os.path.join(args.data_dir, 'train'), transformed)
-    mask_path = args.output_img + "/mask"
-    output_path = args.output_img + "/output"
+    img_array = []
+    for filename in glob.glob('{}/*.{}'.format(args.data_dirimg_path, "png")):
+        img = cv2.imread(filename)
+        img_array.append(img)
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+    size = (img_array[0].shape[0], img_array[0].shape[1])
+    out = cv2.VideoWriter('{}/test.avi'.format(args.output_dir), fourcc, 3, size)
+    # transformed = transforms.Compose([
+    #     transforms.Resize(args.img_size),
+    #     transforms.RandomCrop((args.img_size, args.img_size)),
+    #     transforms.ToTensor(),
+    # ])
+    # image_set = ImageDataset(os.path.join(args.data_dir, 'train'), transformed)
+    # mask_path = args.output_img + "/mask"
+    # output_path = args.output_img + "/output"
 
-    for i in range(image_set):
-        x = torch.unsqueeze(image_set[i], dim=0)
+    for img in img_array:
+        # x = torch.unsqueeze(image_set[i], dim=0)
 
         # create mask
-        mask = generate_mask(
-            shape=(1, 1, x.shape[2], x.shape[3]),
-            hole_size=(
-                (args.hole_min_w, args.hole_max_w),
-                (args.hole_min_h, args.hole_max_h),
-            ),
-            max_holes=args.max_holes,
-        )
+        # convert img to tensor
+        # img = Image.open(args.input_img)
+        # img = transforms.Resize((args.img_size))(img)
+        # img = transforms.RandomCrop((args.img_size, args.img_size))(img)
+        x = torch.from_numpy(img)
+        x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
 
+        # create mask
+        temp_path = "GLCIC\\test.jpg"
+        save_image(x, temp_path, nrow=1)
+        if args.method:
+            area = get_masked_area(temp_path)
+            mask = generate_mask(
+                shape=(1, 1, x.shape[2], x.shape[3]),
+                area=area
+            )
+        else:
+            area = extract_subtitle(temp_path)
+            mask = generate_mask_from_pos(
+                shape=(1, 1, x.shape[2], x.shape[3]),
+                pos=area
+            )
         # inpaint
         model.eval()
         with torch.no_grad():
             x_mask = x - x * mask + mpv * mask
             input = torch.cat((x_mask, mask), dim=1)
             output = model(input)
-            inpainted = poisson_blend(x_mask, output, mask)
-            maskpath = os.path.join(mask_path, 'test_%d.png' % i)
-            outputpath = os.path.join(output_path, 'test_%d.png' % i)
-            save_image(imgs, maskpath)
-            save_image(inpainted, outputpath)
-    print('output img was saved as %s.' % args.output_img)
+            frame = poisson_blend(x_mask, output, mask)
+            # maskpath = os.path.join(mask_path, 'test_%d.png' % i)
+            # outputpath = os.path.join(output_path, 'test_%d.png' % i)
+            # save_image(imgs, maskpath)
+            # save_image(inpainted, outputpath)
+            out.write(frame)
+        os.remove(temp_path)
+
+    out.release()
+    print('output video was saved as %s.' % args.output_dir)
 
 
 def image_convert_shape(image):
@@ -79,6 +105,8 @@ if __name__ == "__main__":
         "input_img": "GLCIC\movie_caption.jpg",  # input img
         "output_img": "GLCIC\\result1.jpg",  # output img name
         "input_img2": "GLCIC\movie_caption.jpg",
+        "input_dir": "", # input img directory
+        "output_dir": "", # output video
         "method": False,  # True for the first method, False for the second method
         "max_holes": 5,
         "img_size": 500,
