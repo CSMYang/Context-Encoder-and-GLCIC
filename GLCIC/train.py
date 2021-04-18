@@ -1,5 +1,8 @@
 """
+This train function is bascially from
 https://github.com/otenim/GLCIC-PyTorch/blob/master/train.py
+https://github.com/otenim/GLCIC-PyTorch/blob/master/utils.py
+with some modification.
 """
 import json
 import os
@@ -21,31 +24,13 @@ from torch.autograd import Variable
 
 def generate_mask(shape, hole_size, hole_area=None, max_holes=1):
     """
-    * inputs:
-        - shape (sequence, required):
-                Shape of a mask tensor to be generated.
-                A sequence of length 4 (N, C, H, W) is assumed.
-        - hole_size (sequence, required):
-                Size of holes created in a mask.
-                If a sequence of length 4 is provided,
-                holes of size (W, H) = (
-                    hole_size[0][0] <= hole_size[0][1],
-                    hole_size[1][0] <= hole_size[1][1],
-                ) are generated.
-                All the pixel values within holes are filled with 1.0.
-        - hole_area (sequence, optional):
-                This argument constraints the area where holes are generated.
-                hole_area[0] is the left corner (X, Y) of the area,
-                while hole_area[1] is its width and height (W, H).
-                This area is used as the input region of Local discriminator.
-                The default value is None.
-        - max_holes (int, optional):
-                This argument specifies how many holes are generated.
-                The default value is 1.
-    * returns:
-            A mask tensor of shape [N, C, H, W] with holes.
-            All the pixel values within holes are filled with 1.0,
-            while the other pixel values are zeros.
+    :param shape: Shape of a mask tensor with the dimension (N, C, H, W)
+    :param hole_size: Size of holes created in a mask with the dimension (W, H)
+    :param hole_area: The area where holes are generated ((X, Y), (W, H)). Default None.
+    :param max_holes: The number of holes to generate. Default 1.
+    :return: A mask tensor of shape [N, C, H, W] with holes.
+    All the pixel values within holes are filled with 1.0,
+    while the other pixel values are zeros.
     """
     mask = torch.zeros(shape)
     for i in range(shape[0]):
@@ -71,15 +56,9 @@ def generate_mask(shape, hole_size, hole_area=None, max_holes=1):
 
 def generate_area(size, mask_size):
     """
-    * inputs:
-        - size (sequence, required)
-                A sequence of length 2 (W, H) is assumed.
-                (W, H) is the size of hole area.
-        - mask_size (sequence, required)
-                A sequence of length 2 (W, H) is assumed.
-                (W, H) is the size of input mask.
-    * returns:
-            A sequence used for the input argument 'hole_area' for function 'generate_mask'.
+    :param size: A sequence of length 2 (W, H)
+    :param mask_size: A sequence of length 2 (W, H)
+    :return: A sequence used for the input argument 'hole_area' for function 'generate_mask'. ((X, Y), (W, H))
     """
     mask_w, mask_h = mask_size
     harea_w, harea_h = size
@@ -90,15 +69,9 @@ def generate_area(size, mask_size):
 
 def crop(x, area):
     """
-    * inputs:
-        - x (torch.Tensor, required)
-                A torch tensor of shape (N, C, H, W) is assumed.
-        - area (sequence, required)
-                A sequence of length 2 ((X, Y), (W, H)) is assumed.
-                sequence[0] (X, Y) is the left corner of an area to be cropped.
-                sequence[1] (W, H) is its width and height.
-    * returns:
-            A torch tensor of shape (N, C, H, W) cropped in the specified area.
+    :param x: A torch tensor of shape (N, C, H, W)
+    :param area: A sequence of length 2 ((X, Y), (W, H))
+    :return: A torch tensor of shape (N, C, H, W) cropped in the specified area.
     """
     xmin, ymin = area[0]
     w, h = area[1]
@@ -107,13 +80,9 @@ def crop(x, area):
 
 def sample_random_batch(dataset, batch_size=32):
     """
-    * inputs:
-        - dataset (torch.utils.data.Dataset, required)
-                An instance of torch.utils.data.Dataset.
-        - batch_size (int, optional)
-                Batch size.
-    * returns:
-            A mini-batch randomly sampled from the input dataset.
+    :param dataset: The dataset with the type orch.utils.data.Dataset
+    :param batch_size: Default 32.
+    :return: A mini-batch randomly sampled from the input dataset.
     """
     num_samples = len(dataset)
     batch = []
@@ -126,15 +95,10 @@ def sample_random_batch(dataset, batch_size=32):
 
 def poisson_blend(input, output, mask):
     """
-    * inputs:
-        - input (torch.Tensor, required)
-                Input tensor of Completion Network, whose shape = (N, 3, H, W).
-        - output (torch.Tensor, required)
-                Output tensor of Completion Network, whose shape = (N, 3, H, W).
-        - mask (torch.Tensor, required)
-                Input mask tensor of Completion Network, whose shape = (N, 1, H, W).
-    * returns:
-                Output image tensor of shape (N, 3, H, W) inpainted with poisson image editing method.
+    :param input: Input tensor of Completion Network, whose shape = (N, 3, H, W).
+    :param output: Output tensor of Completion Network, whose shape = (N, 3, H, W).
+    :param mask: Input mask tensor of Completion Network, whose shape = (N, 1, H, W).
+    :return: Output image tensor of shape (N, 3, H, W) inpainted with poisson image editing method.
     """
     input, output, mask = input.clone().cpu(), output.clone().cpu(), mask.clone().cpu()
     mask = torch.cat((mask, mask, mask), dim=1)  # convert to 3-channel format
@@ -173,13 +137,6 @@ def compute_mpv(train_set):
     pbar.close()
     np.save('GLCIC\mpv.npy', mpv)
     return mpv
-
-
-# def completion_network_loss(input, output, mask):
-#     """
-#     The loss function for completion_network
-#     """
-#     return mse_loss(output * mask, input * mask)
 
 
 class AttrDict(dict):
