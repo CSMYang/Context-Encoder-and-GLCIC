@@ -1,5 +1,7 @@
 """
+This make dataset function is bascially from
 https://github.com/otenim/GLCIC-PyTorch/blob/master/datasets/make_dataset.py
+with some modification.
 """
 import os
 import imghdr
