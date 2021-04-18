@@ -109,7 +109,7 @@ def perdict(Generator, real_image):
     # replace the center of the real_image with the fake_center
     fake_center_size = fake_center[0].shape[1]
     leftImageCenter = int(fake_center_size/2)
-    SavingImage[:, leftImageCenter:leftImageCenter+fake_center_size,
+    SavingImage[:, 64:128,
                 leftImageCenter: leftImageCenter+fake_center_size] = fake_center[0][:, :, :]
     result_image = torch.ones((128, 128, 3))
     result_image[:, :, 0] = SavingImage[0]
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     # train_loader = torch.utils.data.DataLoader(train_set, batch_size=1,
     #                                            shuffle=False)
 
-    train_set = ImageDataset("ContextEncoder\\testing_image\\real",
+    train_set = ImageDataset("ContextEncoder\movie_caption\original",
                              transform, recursive_search=True)
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=1,
                                                shuffle=False)
@@ -222,7 +222,7 @@ if __name__ == '__main__':
         image = img
 
         real_image = image.clone()
-        image[:, :, 32:32+64,
+        image[:, :, 64:128,
               32:32+64] = 0
 
         image = image.cuda()
@@ -251,10 +251,10 @@ if __name__ == '__main__':
         real_real_image_1 = real_real_image + 1
         real_real_image_1 *= 255/2
 
-        imageio.imwrite("ContextEncoder\\AnotherTestResult\\{}_real.png".format(i),
+        imageio.imwrite("ContextEncoder\\movie_caption\\real_{}.jpg".format(i),
                         real_real_image_1.type(torch.uint8).detach())
 
-        imageio.imwrite("ContextEncoder\\AnotherTestResult\\{}_generated.png".format(i),
+        imageio.imwrite("ContextEncoder\\movie_caption\\predict_{}.jpg".format(i),
                         result.type(torch.uint8).detach())
 
         print(real_image[0].shape, temp_img[0].shape)

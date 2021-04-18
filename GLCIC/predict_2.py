@@ -33,7 +33,8 @@ def make_video(args, mpv, model):
         img_array.append(img)
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
     size = (img_array[0].shape[0], img_array[0].shape[1])
-    out = cv2.VideoWriter('{}/test.avi'.format(args.output_dir), fourcc, 3, size)
+    out = cv2.VideoWriter(
+        '{}/test.avi'.format(args.output_dir), fourcc, 3, size)
     # transformed = transforms.Compose([
     #     transforms.Resize(args.img_size),
     #     transforms.RandomCrop((args.img_size, args.img_size)),
@@ -102,11 +103,11 @@ if __name__ == "__main__":
     args_dict = {
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
-        "input_img": "GLCIC\movie_caption.jpg",  # input img
+        "input_img": "GLCIC\\netflix_with_caption.png",  # input img
         "output_img": "GLCIC\\result1.jpg",  # output img name
-        "input_img2": "GLCIC\movie_caption.jpg",
-        "input_dir": "", # input img directory
-        "output_dir": "", # output video
+        "input_img2": "GLCIC\\netflix_without_caption.png",
+        "input_dir": "",  # input img directory
+        "output_dir": "",  # output video
         "method": False,  # True for the first method, False for the second method
         "max_holes": 5,
         "img_size": 500,
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
 
     # create mask
-    temp_path = "GLCIC\\test.jpg"
+    temp_path = "GLCIC\\test1.jpg"
     save_image(x, temp_path, nrow=1)
     if args.method:
         area = get_masked_area(temp_path)
@@ -152,15 +153,16 @@ if __name__ == "__main__":
             pos=area
         )
 
-    plt.imshow(mask[0][:, :].squeeze().numpy().astype(
-        np.float32), cmap='Greys')
-    plt.show()
+    # plt.imshow(mask[0][:, :].squeeze().numpy().astype(
+    #     np.float32), cmap='Greys')
+    # plt.show()
+
     # inpaint
     model.eval()
     with torch.no_grad():
 
         x_mask = x - x * mask + mpv * mask
-        save_image(x_mask, temp_path, nrow=1)
+        # save_image(x_mask, temp_path, nrow=1)
         input = torch.cat((x_mask, mask), dim=1)
         output = model(input)
         inpainted = poisson_blend(x_mask, output, mask)
@@ -194,11 +196,8 @@ if __name__ == "__main__":
     # visualize_saliency_map("GLCIC\\result.jpg", input_ld_fake, 160, 160, CD)
     # os.remove(temp_path)
 
-    # ssim
-    # x1, y, w, h = area
-    # image1 = image_convert_shape(inpainted[0, :, y: y + h, x1: x1 + w])
-    # image2 = image_convert_shape(x[0, :, y: y + h, x1: x1 + w])
-    # print(ssim(image1, image2))
+    area = get_masked_area(temp_path)
+    x1, y, w, h = area
 
     img = Image.open(args.input_img2)
     img = transforms.Resize((args.img_size))(img)
@@ -206,6 +205,11 @@ if __name__ == "__main__":
     x = transforms.ToTensor()(img)
     x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
     temp_path = "GLCIC\\ssim_compare1.jpg"
-    save_image(x, temp_path, nrow=3)
+    save_image(x[0, :, y: y + h, x1: x1 + w], temp_path, nrow=3)
     temp_path = "GLCIC\\ssim_compare2.jpg"
-    save_image(inpainted, temp_path, nrow=3)
+    save_image(inpainted[0, :, y: y + h, x1: x1 + w], temp_path, nrow=3)
+
+    # ssim
+    image1 = image_convert_shape(inpainted[0, :, y: y + h, x1: x1 + w])
+    image2 = image_convert_shape(x[0, :,  y: y + h, x1: x1 + w])
+    print(ssim(image1, image2))

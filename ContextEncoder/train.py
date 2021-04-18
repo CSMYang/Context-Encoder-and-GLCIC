@@ -15,6 +15,7 @@ from PIL import Image
 from skimage import img_as_ubyte
 import numpy as np
 import cv2
+from dataset import *
 
 args_dict = {
     'image_size': 128,
@@ -65,16 +66,28 @@ Discriminator.cuda()
 #     num_workers=1,
 # )
 
-dataset = dset.CIFAR10(root="ContextEncoder\Dataset", download=True,
-                       transform=transforms.Compose([
-                           transforms.Resize(args_dict["image_size"]),
-                           transforms.ToTensor(),
-                           transforms.Normalize(
-                               (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                       ]))
+# dataset = dset.CIFAR100(root="ContextEncoder\Dataset", download=True,
+#                         transform=transforms.Compose([
+#                             transforms.Resize(args_dict["image_size"]),
+#                             transforms.ToTensor(),
+#                             transforms.Normalize(
+#                                 (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+#                         ]))
 
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=args_dict["batchSize"],
-                                         shuffle=True, num_workers=int(1))
+# dataloader = torch.utils.data.DataLoader(dataset, batch_size=args_dict["batchSize"],
+#                                          shuffle=True, num_workers=int(1))
+
+
+train_set = ImageDataset(os.path.join("img_align_celeba", 'train'), transform=transforms.Compose([
+    transforms.Resize((args_dict["image_size"], args_dict["image_size"])),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+],), recursive_search=False)
+
+dataloader = torch.utils.data.DataLoader(train_set, batch_size=(32),
+                                         shuffle=True)
+
 
 # Optimizers
 Gen_optimizer = torch.optim.Adam(Generator.parameters(
@@ -83,7 +96,7 @@ Dis_optimizer = torch.optim.Adam(
     Discriminator.parameters(), lr=args_dict["lr"], betas=(args_dict["beta1"], args_dict["beta2"]))
 
 
-def save_sample_image(Generator, real_image, iteration, epoch, day):
+def save_sample_image(Generator, real_image_without_mask, real_image, iteration, epoch, day):
 
     SavingImage = real_image.clone()
     fake_center = Generator(SavingImage)
@@ -95,7 +108,7 @@ def save_sample_image(Generator, real_image, iteration, epoch, day):
     SavingImage[:, leftImageCenter:leftImageCenter+fake_center_size,
                 leftImageCenter: leftImageCenter+fake_center_size] = fake_center[0][:, :, :]
     path = os.path.join("ContextEncoder\Result\day{0}\\".format(day),
-                        'sample-{:06d} -{:06d}.png'.format(epoch, iteration))
+                        '{}-{}-generated_result.png'.format(epoch, iteration))
     result_image = torch.ones((128, 128, 3))
     result_image[:, :, 0] = SavingImage[0]
     result_image[:, :, 1] = SavingImage[1]
@@ -106,7 +119,7 @@ def save_sample_image(Generator, real_image, iteration, epoch, day):
 
     imageio.imwrite(path, result_image_1.type(torch.uint8).detach())
     path = os.path.join("ContextEncoder\Result\day{0}\\".format(day),
-                        'real-{:06d} -{:06d}.png'.format(epoch, iteration))
+                        '{}-{}-real.png'.format(epoch, iteration))
 
     temp_image = torch.ones((128, 128, 3))
     temp_image[:, :, 0] = real_image[0][0]
@@ -118,18 +131,30 @@ def save_sample_image(Generator, real_image, iteration, epoch, day):
 
     imageio.imwrite(path, temp_image_1.type(torch.uint8).detach())
 
+    temp_image = torch.ones((128, 128, 3))
+    temp_image[:, :, 0] = real_image_without_mask[0]
+    temp_image[:, :, 1] = real_image_without_mask[1]
+    temp_image[:, :, 2] = real_image_without_mask[2]
+    temp_image_1 = torch.ones((128, 128, 3), dtype=int)
+    temp_image_1 = temp_image + 1
+    temp_image_1 *= 255/2
+
+    path = os.path.join("ContextEncoder\Result\day{0}\\".format(day),
+                        '{}-{}-real_without_mask.png'.format(epoch, iteration))
+    imageio.imwrite(path, temp_image_1.type(torch.uint8).detach())
+
 
 if __name__ == '__main__':
     # load state dict
 
     Gen_optimizer.load_state_dict(torch.load(
-        "ContextEncoder\model\GenOptimizer\GenOptim_70_day3.pth"))
+        "ContextEncoder\model\GenOptimizer\GenOptim_CelebA.pth"))
     Dis_optimizer.load_state_dict(torch.load(
-        "ContextEncoder\model\DisOptimizer\DisOptim_70_day3.pth"))
+        "ContextEncoder\model\DisOptimizer\DisOptim_CelebA.pth"))
     Discriminator.load_state_dict(torch.load(
-        "ContextEncoder\model\Discriminator\Discriminator_70_day3.pth"))
+        "ContextEncoder\model\Discriminator\Discriminator_CelebA.pth"))
     Generator.load_state_dict(torch.load(
-        "ContextEncoder\model\Generator\Generator_70_day3.pth"))
+        "ContextEncoder\model\Generator\Generator_CelebA.pth"))
     for epoch in range(args_dict["epoches"]):
         for i, image in enumerate(dataloader):
             dataclass = DataProcess(image, 64)
@@ -180,16 +205,17 @@ if __name__ == '__main__':
                   "G total loss", G_total_loss.item())
             # save check point
             if(i % 100 == 0):
-                save_sample_image(Generator, real_image, i, epoch, day=4)
+                save_sample_image(Generator, image[0],
+                                  real_image, i, epoch, day=5)
 
         Gpath = os.path.join('ContextEncoder\model\Generator',
-                             'Generator.pth')
+                             'Generator_CelebA_2.pth')
         Dpath = os.path.join('ContextEncoder\model\Discriminator',
-                             'Discriminator.pth')
+                             'Discriminator_CelebA_2.pth')
         DisoptimizerPath = os.path.join('ContextEncoder\model\DisOptimizer',
-                                        'DisOptim.pth')
+                                        'DisOptim_CelebA_2.pth')
         GenoptimizerPath = os.path.join('ContextEncoder\model\GenOptimizer',
-                                        'GenOptim.pth')
+                                        'GenOptim_CelebA_2.pth')
         torch.save(Generator.state_dict(), Gpath)
         torch.save(Discriminator.state_dict(), Dpath)
         torch.save(Gen_optimizer.state_dict(), GenoptimizerPath)

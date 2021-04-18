@@ -19,12 +19,13 @@ class DataProcess():
         self.image_size = image[0].shape[1]  # the width/height of image
 
     def process(self):
-        images, _ = self.image_batch
+        images = self.image_batch
         images.cuda()
         leftImageCenter = int(self.mask_size/2)
         masked_image = images[:, :, leftImageCenter:leftImageCenter +
-                              self.mask_size, leftImageCenter:leftImageCenter + self.mask_size].cuda()
-        images[:, :, leftImageCenter:leftImageCenter +
-               self.mask_size, leftImageCenter:leftImageCenter + self.mask_size] = 0
+                              self.mask_size, leftImageCenter:leftImageCenter + self.mask_size].cuda().clone()
+        temp_images = images.clone()
+        temp_images[:, :, leftImageCenter:leftImageCenter +
+                    self.mask_size, leftImageCenter:leftImageCenter + self.mask_size] = 0
 
-        return masked_image, images
+        return masked_image, temp_images
