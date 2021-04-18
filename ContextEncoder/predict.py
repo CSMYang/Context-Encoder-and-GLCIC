@@ -100,7 +100,7 @@ def visualize_saliency_map(img_path, input_width, input_height, model):
     plt.show()
 
 
-def perdict(Generator, real_image):
+def predict(Generator, real_image):
 
     SavingImage = real_image.clone()
     fake_center = Generator(SavingImage)
@@ -195,16 +195,17 @@ if __name__ == '__main__':
     Generator.load_state_dict(
         torch.load("ContextEncoder\model\Generator\Generator_CelebA_2.pth")
     )
-    # # read image in folder
-    # train_set = ImageDataset("img_align_celeba\\test",
+    # read image in folder
+    train_set = ImageDataset("img_align_celeba\\test",
+                             transform, recursive_search=True)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=1,
+                                               shuffle=False)
+
+    # train_set = ImageDataset("ContextEncoder\\testing_image\\real",
     #                          transform, recursive_search=True)
     # train_loader = torch.utils.data.DataLoader(train_set, batch_size=1,
     #                                            shuffle=False)
 
-    train_set = ImageDataset("ContextEncoder\\testing_image\\real",
-                             transform, recursive_search=True)
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=1,
-                                               shuffle=False)
     # read CIFAR10 dataset
     # dataset = dset.CIFAR10(root="ContextEncoder\Dataset", download=True,
     #                        transform=transforms.Compose([
@@ -217,8 +218,12 @@ if __name__ == '__main__':
     # train_loader = torch.utils.data.DataLoader(dataset, batch_size=1,
     #                                            shuffle=False, num_workers=int(1))
 
+    total_ssim = 0
+    total_psnr = 0
     for i, img in enumerate(train_loader):
 
+        if(i == 10):
+            break
         image = img
 
         real_image = image.clone()
@@ -231,7 +236,7 @@ if __name__ == '__main__':
         temp_img = image.clone()
         temp_img.cuda()
 
-        result = perdict(Generator, temp_img)
+        result = predict(Generator, temp_img)
 
         # real masked image
         temp_temp_image = torch.zeros((128, 128, 3))
@@ -251,14 +256,22 @@ if __name__ == '__main__':
         real_real_image_1 = real_real_image + 1
         real_real_image_1 *= 255/2
 
-        imageio.imwrite("ContextEncoder\\AnotherTestResult\\{}_real.png".format(i),
+        imageio.imwrite("ContextEncoder\\TestResultForFid\\Real\\{}_real.png".format(i),
                         real_real_image_1.type(torch.uint8).detach())
 
-        imageio.imwrite("ContextEncoder\\AnotherTestResult\\{}_generated.png".format(i),
+        imageio.imwrite("ContextEncoder\\TestResultForFid\\Fake\\{}_generated.png".format(i),
                         result.type(torch.uint8).detach())
 
-        print(real_image[0].shape, temp_img[0].shape)
         # print(ssim(result.cpu().detach(), temp_temp_image_1))
-        print(ssim(result[32:32+64,
-                          32:32+64, :].cpu().detach(), real_real_image_1[32:32+64,
-                                                                         32:32+64, :]))
+        ssim_result = ssim(result[32:32+64,
+                                  32:32+64, :].cpu().detach(), real_real_image_1[32:32+64,
+                                                                                 32:32+64, :])
+
+        psnr_result = psnr(result[32:32+64,
+                                  32:32+64, :].cpu().detach(), real_real_image_1[32:32+64,
+                                                                                 32:32+64, :])
+        total_psnr += psnr_result
+        total_ssim += ssim_result
+        print("".format(i), "ssim :", ssim_result, "psnr:", psnr_result)
+
+print("ssim:", total_ssim/10, "psnr", total_psnr/10)

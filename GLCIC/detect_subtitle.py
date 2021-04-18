@@ -11,12 +11,12 @@ def get_area(img, thres=10000):
     # Step 1: get binary image
     image = cv2.imread(img)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (3, 3), 0)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
     thresh = cv2.adaptiveThreshold(
         blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 30)
 
     # Step 2: combine adjacent text
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
     dilate = cv2.dilate(thresh, kernel, iterations=4)
 
     # Step 3: find appropriate subtitle area
@@ -38,10 +38,10 @@ def get_area(img, thres=10000):
 
     # x, y, w, h = cv2.boundingRect(best_c)
     # cv2.rectangle(image, (x, y), (x + w, y + h), (36, 255, 12), 3)
-    cv2.imshow('thresh', thresh)
-    cv2.imshow('dilate', dilate)
-    cv2.imshow('image', image)
-    cv2.waitKey()
+    # cv2.imshow('thresh', thresh)
+    # cv2.imshow('dilate', dilate)
+    # cv2.imshow('image', image)
+    # cv2.waitKey()
 
     return cv2.boundingRect(best_c)
 

@@ -103,12 +103,12 @@ if __name__ == "__main__":
     args_dict = {
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
-        "input_img": "GLCIC\\netflix_with_caption.png",  # input img
+        "input_img": "GLCIC\\netflix_2_with_caption.png",  # input img
         "output_img": "GLCIC\\result1.jpg",  # output img name
-        "input_img2": "GLCIC\\netflix_without_caption.png",
+        "input_img2": "GLCIC\\netflix_2_with_caption.png",
         "input_dir": "",  # input img directory
         "output_dir": "",  # output video
-        "method": False,  # True for the first method, False for the second method
+        "method": True,  # True for the first method, False for the second method
         "max_holes": 5,
         "img_size": 500,
         "hole_min_w": 24,

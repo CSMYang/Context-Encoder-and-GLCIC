@@ -231,7 +231,7 @@ if __name__ == '__main__':
         temp_img = image.clone()
         temp_img.cuda()
 
-        result = perdict(Generator, temp_img)
+        result = predict(Generator, temp_img)
 
         # real masked image
         temp_temp_image = torch.zeros((128, 128, 3))
