@@ -22,41 +22,23 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-def make_video(args, mpv, model):
+def make_video(args, mpv, model, img_type="png"):
     """
     Predict imgs from dir
     """
     # convert img to tensor
-    img_array = []
-    for filename in glob.glob('{}/*.{}'.format(args.data_dirimg_path, "png")):
-        img = Image.open(filename)
-        img_array.append(img)
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-    size = (img_array[0].shape[0], img_array[0].shape[1])
+    size = (args.img_size, args.img_size)
     out = cv2.VideoWriter(
-        '{}/test.avi'.format(args.output_dir), fourcc, 3, size)
-    # transformed = transforms.Compose([
-    #     transforms.Resize(args.img_size),
-    #     transforms.RandomCrop((args.img_size, args.img_size)),
-    #     transforms.ToTensor(),
-    # ])
-    # image_set = ImageDataset(os.path.join(args.data_dir, 'train'), transformed)
-    # mask_path = args.output_img + "/mask"
-    # output_path = args.output_img + "/output"
-
-    for img in img_array:
-        # x = torch.unsqueeze(image_set[i], dim=0)
-
-        # create mask
-        # convert img to tensor
-        # img = Image.open(args.input_img)
+        '{}/test.avi'.format(args.output_dir), fourcc, args.fps, size)
+    for filename in glob.glob('{}/*.{}'.format(args.input_dir, img_type)):
+        img = Image.open(filename)
         # img = transforms.Resize((args.img_size))(img)
-        # img = transforms.RandomCrop((args.img_size, args.img_size))(img)
-        x = torch.from_numpy(img)
+        x = transforms.ToTensor()(img)
         x = torch.unsqueeze(x, dim=0)[:, 0:3, :, :]
 
         # create mask
-        temp_path = "GLCIC\\test.jpg"
+        temp_path = "./test.jpg"
         save_image(x, temp_path, nrow=1)
         if args.method:
             area = get_masked_area(temp_path)
@@ -71,6 +53,7 @@ def make_video(args, mpv, model):
                 pos=area
             )
         # inpaint
+        os.remove(temp_path)
         model.eval()
         with torch.no_grad():
             x_mask = x - x * mask + mpv * mask
@@ -80,9 +63,11 @@ def make_video(args, mpv, model):
             # maskpath = os.path.join(mask_path, 'test_%d.png' % i)
             # outputpath = os.path.join(output_path, 'test_%d.png' % i)
             # save_image(imgs, maskpath)
-            # save_image(inpainted, outputpath)
-            out.write(frame)
-        os.remove(temp_path)
+            save_image(frame, temp_path)
+            # print("image added+1")
+            out.write(cv2.imread(temp_path))
+            os.remove(temp_path)
+
 
     out.release()
     print('output video was saved as %s.' % args.output_dir)
@@ -108,6 +93,8 @@ if __name__ == "__main__":
         "input_img2": "GLCIC\\netflix_2_with_caption.png",
         "input_dir": "",  # input img directory
         "output_dir": "",  # output video
+        "video_size": None, # The size of the frames of the video
+        "fps": 100, # the number of frames per second
         "method": True,  # True for the first method, False for the second method
         "max_holes": 5,
         "img_size": 500,
