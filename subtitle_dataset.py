@@ -92,6 +92,10 @@ if __name__ == "__main__":
     #         break
     pass
 
+    # download youtube video
+    # url = "https://www.youtube.com/watch?v=j2HnL6T5J4w"
+    # download_video(url, "./video", True)
+
     # make datasets for video subtitle removal
     # video_path = "./video/The need for humanity in AI _ Jimmy Ba _ TEDxToronto_mp4~1.mp4"
     # img_path = "./GLCIC/video_frames"
