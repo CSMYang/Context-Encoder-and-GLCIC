@@ -28,9 +28,8 @@ def make_video(args, mpv, model, img_type="png"):
     """
     # convert img to tensor
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-    size = (args.img_size, args.img_size)
     out = cv2.VideoWriter(
-        '{}/test.avi'.format(args.output_dir), fourcc, args.fps, size)
+        '{}/test.avi'.format(args.output_dir), fourcc, args.fps, args.video_size)
     for filename in glob.glob('{}/*.{}'.format(args.input_dir, img_type)):
         img = Image.open(filename)
         # img = transforms.Resize((args.img_size))(img)
@@ -93,7 +92,7 @@ if __name__ == "__main__":
         "input_img2": "GLCIC\\netflix_2_with_caption.png",
         "input_dir": "",  # input img directory
         "output_dir": "",  # output video
-        "video_size": None, # The size of the frames of the video
+        "video_size": (640, 360), # The size of the frames of the video
         "fps": 100, # the number of frames per second
         "method": True,  # True for the first method, False for the second method
         "max_holes": 5,
