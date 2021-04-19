@@ -44,13 +44,16 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
     4. xxx
 
 ### Video Subtitle Removal:
-    1. xxx
+    If you want to test a single frame/image, skip the first step.
+    1. To remove subtitles from a video, we have provided a set of frames from [Prof. Jimmy Ba's Ted Talk](https://www.youtube.com/watch?v=j2HnL6T5J4w). If you want to test other videos, please download by yourself. Then, go subtitle_dataset.py and run build_dataset() function to get a set of frames.
 
-    2. xxx
+    For a set of frames:
+    2. Go GLCIC/subtitle_removal_predict.py, modify "input_dir", "output_dir", "video_size", "fps", and "method" in the args_dict so that it could run correctly. Then, comment out the image prediction part and activate make_video() so it could br ran.
        
-    3. xxx
+    3. The output video should be in the "output_dir" and is named as "test.avi". It takes times depending on the number of images.
 
-    4. xxx
+    For a single frame/image:
+    2. Go GLCIC/subtitle_removal_predict.py, modify "input_img", "output_img", "method", "img_size", and "input_ing2" if necessary. Then, run its file directly.
 
 ## Reference:
 
