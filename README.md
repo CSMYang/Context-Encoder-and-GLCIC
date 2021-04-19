@@ -7,7 +7,9 @@ Open the project under the main directory CSC413-Project, or it might ouput path
 
 ## Authors: 
 Jiahao Cheng 
+
 Yi Wai Chow 
+
 Zhiyuan Yang 
 
 ## Language version: 
@@ -46,7 +48,7 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
 ### Video Subtitle Removal:
 
     Note:
-    We have given a video on video directory. The make_video result as well as
+    We have provided a video on video directory. The make_video result as well as
     outputs of some frames can be found in GLCIC/video and Testing Result/GLCIC.
     
     If you want to test a single frame/image, skip the first step.
@@ -67,8 +69,22 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
     For a single frame/image:
     2. Go GLCIC/subtitle_removal_predict.py, modify "input_img", "output_img", "method", 
     "img_size", and "input_ing2" if necessary. Then, run its file directly.
+    
+### Arguments
+In GLCIC/subtitle_removal_predict.py:
+* `<model>` (required): path of the pretrained model (given)
+* `<config>` (required): path of the model config file (given)
+* `<input_img>` (required when testing one image): path of the image that need for subtitle removal
+* `<output_img>` (required when testing one image): path of the output image
+* `<input_img2>` (required when computing SSIM): path of the image that need to do comparison
+* `<input_dir>` (required when testing a set of frames): path of the input directory including a set of frames/images
+* `<output_dir>` (required when testing a set of frames): path of the output directory for generating a video
+* `<video_size>` (required when testing a set of frames): the width and height of the input frames/images, should be a tuple of two integers
+* `<fps>` (required when testing a set of frames): the number of frames per second for the output video, should be an int
+* `<method>` (required): a boolean representing the method of generating mask for covering subtitles; True for the first method (a rectangle), False for the second method (subtitle itself)
+* `<img_size>` (required): the image size for the model input, should be an int or a tuple of two integers
 
-## Reference:
+## References:
 
 For the Context Encoder model, we get the idea from xxx. You can check it [here]().
 
