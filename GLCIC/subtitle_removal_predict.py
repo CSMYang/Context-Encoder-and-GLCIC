@@ -30,6 +30,9 @@ def make_video(args, mpv, model, img_type="png"):
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
     out = cv2.VideoWriter(
         '{}/test.avi'.format(args.output_dir), fourcc, args.fps, args.video_size)
+    onlyfiles = next(os.walk(args.input_dir))[2]
+    pbar = tqdm(total=len(onlyfiles),
+                desc='Removing subtitles...')
     for filename in glob.glob('{}/*.{}'.format(args.input_dir, img_type)):
         img = Image.open(filename)
         # img = transforms.Resize((args.img_size))(img)
@@ -65,10 +68,10 @@ def make_video(args, mpv, model, img_type="png"):
             save_image(frame, temp_path)
             # print("image added+1")
             out.write(cv2.imread(temp_path))
+            pbar.update()
             os.remove(temp_path)
-
-
     out.release()
+    pbar.close()
     print('output video was saved as %s.' % args.output_dir)
 
 
@@ -90,10 +93,10 @@ if __name__ == "__main__":
         "input_img": "GLCIC\\netflix_2_with_caption.png",  # input img
         "output_img": "GLCIC\\result1.jpg",  # output img name
         "input_img2": "GLCIC\\netflix_2_with_caption.png",
-        "input_dir": "",  # input img directory
-        "output_dir": "",  # output video
+        "input_dir": "GLCIC\\video_frames",  # input img directory
+        "output_dir": "GLCIC\\video",  # output video
         "video_size": (640, 360), # The size of the frames of the video
-        "fps": 100, # the number of frames per second
+        "fps": 3, # the number of frames per second
         "method": True,  # True for the first method, False for the second method
         "img_size": 500,
     }
@@ -109,7 +112,7 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(args.model, map_location='cpu'))
 
     # =============================================
-    # Predict
+    # Predict (for a single image)
     # =============================================
     # convert img to tensor
     img = Image.open(args.input_img)
@@ -194,3 +197,9 @@ if __name__ == "__main__":
     image1 = image_convert_shape(inpainted[0, :, y: y + h, x1: x1 + w])
     image2 = image_convert_shape(x[0, :,  y: y + h, x1: x1 + w])
     print(ssim(image1, image2))
+
+    # =============================================
+    # Predict (from a set of images)
+    # =============================================
+    # make sure you have modify args correctly
+    # make_video(args, mpv, model)
