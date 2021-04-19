@@ -77,16 +77,22 @@ def build_dataset(video_path, dest_dir, num, start=0):
 
 
 if __name__ == "__main__":
-    video_stream = cv2.VideoCapture(video_path)
-    video_stream.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
-    os.chdir(directory_path)
-    i = 0
-    while cv2.waitKey(1) < 0:
-        has_frame, current_frame = video_stream.read()
-        if has_frame:
-            cv2.imwrite(img_name + '_{}'.format(i) + '.jpg', current_frame)
-            i += 1
-        else:
-            print('End of video reached!')
-            cv2.waitKey(100)
-            break
+    # video_stream = cv2.VideoCapture(video_path)
+    # video_stream.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
+    # os.chdir(directory_path)
+    # i = 0
+    # while cv2.waitKey(1) < 0:
+    #     has_frame, current_frame = video_stream.read()
+    #     if has_frame:
+    #         cv2.imwrite(img_name + '_{}'.format(i) + '.jpg', current_frame)
+    #         i += 1
+    #     else:
+    #         print('End of video reached!')
+    #         cv2.waitKey(100)
+    #         break
+    pass
+
+    # make datasets for video subtitle removal
+    # video_path = "./video/The need for humanity in AI _ Jimmy Ba _ TEDxToronto_mp4~1.mp4"
+    # img_path = "./GLCIC/video_frames"
+    # build_dataset(video_path, img_path, 10, 5000)
