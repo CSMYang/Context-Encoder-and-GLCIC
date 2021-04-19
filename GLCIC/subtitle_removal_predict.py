@@ -95,12 +95,7 @@ if __name__ == "__main__":
         "video_size": (640, 360), # The size of the frames of the video
         "fps": 100, # the number of frames per second
         "method": True,  # True for the first method, False for the second method
-        "max_holes": 5,
         "img_size": 500,
-        "hole_min_w": 24,
-        "hole_max_w": 46,
-        "hole_min_h": 24,
-        "hole_max_h": 48,
     }
     args.update(args_dict)
 
