@@ -76,5 +76,4 @@ For the GLCIC model, we get the idea from Otenim. You can check it [here](https:
 
 For the subtitle removal method 1 in GLCIC/detect_subtitle.py, we get the idea from nathancy's answer. You can check it [here](https://stackoverflow.com/questions/37771263/detect-text-area-in-an-image-using-python-and-opencv).
 
-For the subtitle removal method 2 code in GLCIC/detect_subtitle.py, we get the idea from the blog in programmersought. You can check it [here]
-(https://www.programmersought.com/article/5117975415/).
+For the subtitle removal method 2 code in GLCIC/detect_subtitle.py, we get the idea from the blog in programmersought. You can check it [here](https://www.programmersought.com/article/5117975415/).
