@@ -44,13 +44,13 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
     each predict.py. The evaluation score including SSIM and PSNR. For the FID score, go fid.py
     and you can run it directly.
 
-### visual result
+### Visual Result
 <img src="./Testing Result/GLCIC/model_generation.png">
 <img src="./Testing Result/GLCIC/Second method/1.jpg">
 check the Testing Result folder for more experimental result
 
 ### Arguments
-In GLCIC/subtitle_removal_predict.py:
+In GLCIC/train.py:
 * `<gpu>` (required): a boolean representing whether uses the GPU. Default is True.
 * `<data_dir>` (required): path of the dataset directory.
 * `<result_dir>` (required): path of the images to be stored during the training
