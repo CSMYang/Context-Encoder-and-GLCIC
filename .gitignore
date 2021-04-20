@@ -14,6 +14,7 @@ ContextEncoder/Dataset/cifar-10-python.tar.gz
 *.pth
 **/*.jpg
 !Testing Result/**
+Testing Result/Context Encoder/training result/TrainingResult/**
 *.cc
 *.hh
 *.m
