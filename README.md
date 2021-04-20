@@ -28,24 +28,21 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
 
 ## How to run:
 
-### Context Encoder:
-    1. xxx
-
-    2. xxx
-       
-    3. xxx
-
-    4. xxx
-
-### GLCIC:
+### Context Encoder & GLCIC:
     1. After you download raw dataset, firstly unzip it. Then, go GLCIC/make_dataset.py
     and run it directly since we have initialized all inputs.
 
-    2. If you want to train again using other hyperparameters, go GLCIC/train.py and
-    modify hyperparameters on args_dict.
+    2. If you want to train again using other hyperparameters, go the corresponding train.py.
+    For the Context Encoder model, you can run it directly. For the GLCIC model, modify 
+    hyperparameters on args_dict.
        
-    3. After you trained the model or used given traiend model, go GLCIC/predict.py to
-    test images.
+    3. After you trained the model or used given traiend model, go the corresponding predict.py.
+    You can run it directly. For details about how to change the text pictures, please see
+    the following arguments and the corresponding files.
+    
+    4. Notice that for the evaluation part, all codes can be found following the 'main' part in
+    each predict.py. The evaluation score including SSIM and PSNR. For the FID score, go fid.py
+    and you can run it directly.
 
 ### Arguments
 In GLCIC/subtitle_removal_predict.py:
@@ -53,27 +50,38 @@ In GLCIC/subtitle_removal_predict.py:
 * `<data_dir>` (required): path of the dataset directory.
 * `<result_dir>` (required): path of the images to be stored during the training
 * `<data_parallel>` (required): a boolean representing whether the data should be trained in parallel way. Default is True.
-* `<recursive_search>` (required): a boolean representing whether the dataset should be se. Default is True.
-* `<steps_1>` (required): path of the input directory including a set of frames/images
-* `<steps_2>` (required): path of the output directory for generating a video
-* `<steps_3>` (required): the width and height of the input frames/images, should be a tuple of two integers
-* `<snaperiod_1>` (required): the number of frames per second for the output video, should be an int
-* `<snaperiod_2>` (required): a boolean representing the method of generating mask for covering subtitles; True for the first method (a rectangle), False for the second method (subtitle itself)
-* `<snaperiod_3>` (required): the image size for the model input, should be an int or a tuple of two integers
-* `<max_holes>` (required): path of the input directory including a set of frames/images
-* `<hole_min_w>` (required): path of the output directory for generating a video
-* `<hole_max_w>` (required): the width and height of the input frames/images, should be a tuple of two integers
-* `<hole_min_h>` (required): the number of frames per second for the output video, should be an int
-* `<hole_max_h>` (required): a boolean representing the method of generating mask for covering subtitles; True for the first method (a rectangle), False for the second method (subtitle itself)
-* `<cn_input_size>` (required): the image size for the model input, should be an int or a tuple of two integers
-* `<ld_input_size>` (required): path of the input directory including a set of frames/images
-* `<bsize>` (required): path of the output directory for generating a video
-* `<bdivs>` (required): the width and height of the input frames/images, should be a tuple of two integers
+* `<recursive_search>` (required): a boolean representing whether the dataset loading process is recursive. Default is False.
+* `<steps_1>` (required): training steps during phase 1. Default is 30000.
+* `<steps_2>` (required): training steps during phase 2. Default is 30000.
+* `<steps_3>` (required): training steps during phase 3. Default is 30000.
+* `<snaperiod_1>` (required): snapshot period during phase 1. Default is 5000.
+* `<snaperiod_2>` (required): snapshot period during phase 2. Default is 5000.
+* `<snaperiod_3>` (required): snapshot period during phase 3. Default is 5000.
+* `<max_holes>` (required): maximum number of masks randomly generated and applied to each input image. Default is 1.
+* `<hole_min_w>` (required): minimum width of the mask. Default is 48.
+* `<hole_max_w>` (required): maximum width of the mask. Default is 96.
+* `<hole_min_h>` (required): minimum height of the mask. Default is 48.
+* `<hole_max_h>` (required): maximum height of the mask. Default is 96.
+* `<cn_input_size>` (required): input size of generator (completion network). Default is 160.
+* `<ld_input_size>` (required): input size of local discriminator. Default is 96.
+* `<bsize>` (required): batch size. Default is 16.
+* `<bdivs>` (required): divide a single training step of batch size = bsize into bdivs steps of batch size = bsize/bdivs, which produces the same training results as when bdivs = 1 but uses smaller gpu memory space at the cost of speed. This option can be used together with data_parallel. Default is 1.
 * `<num_test_completions>` (required): the number of frames per second for the output video, should be an int
-* `<mpv>` (required): a boolean representing the method of generating mask for covering subtitles; True for the first method (a rectangle), False for the second method (subtitle itself)
-* `<alhpa>` (required): the image size for the model input, should be an int or a tuple of two integers
-* `<arc>` (required): the image size for the model input, should be an int or a tuple of two integers
+* `<mpv>` (required): path of the mpv array for combining mask. (given)
+* `<alhpa>` (required): the hyperparameter for loss function. Default is 4e-4.
+* `<arc>` (required): the architecture of the ContextDescriminator model. It is either 'celeba' or 'places2'. Default is 'celeba'.
 
+In GLCIC/predict.py:
+* `<model>` (required): path of the pretrained model (given)
+* `<config>` (required): path of the model config file (given)
+* `<input_img>` (required): path of the input image for testing
+* `<output_img>` (required): path of the output image
+* `<max_holes>` (required): maximum number of masks randomly generated and applied to each input image. Default is 10.
+* `<img_size>` (required): the image size for the model input, should be an int or a tuple of two integers. Default is 160.
+* `<hole_min_w>` (required): minimum width of the mask. Default is 48.
+* `<hole_max_w>` (required): maximum width of the mask. Default is 96.
+* `<hole_min_h>` (required): minimum height of the mask. Default is 48.
+* `<hole_max_h>` (required): maximum height of the mask. Default is 96.
 
 ### Video Subtitle Removal:
 
