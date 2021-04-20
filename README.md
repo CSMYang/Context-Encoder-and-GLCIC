@@ -46,7 +46,7 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
 
 ### visual result
 
-<img src="./Context-Encoder-and-GLCIC/Testing Result/GLCIC/Second method/1.jpg">
+<img src="./Testing Result/GLCIC/Second method/1.jpg">
 
 ### Arguments
 In GLCIC/subtitle_removal_predict.py:
