@@ -49,6 +49,9 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
 <img src="./Testing Result/GLCIC/Second method/1.jpg">
 check the Testing Result folder for more experimental result
 
+[this link](https://drive.google.com/file/d/1t9SJj33nBmSsQnMVIVYuOVp5gxXGLu6p/view?usp=sharing)
+
+the above google drive link contains the context encoder's performance on a test set of image
 ### Arguments
 In GLCIC/train.py:
 * `<gpu>` (required): a boolean representing whether uses the GPU. Default is True.
