@@ -178,7 +178,7 @@ if __name__ == "__main__":
     plt.imshow(input_ld_fake[0].numpy().astype(np.float32).transpose(1, 2, 0))
     plt.show()
     visualize_saliency_map("GLCIC\\result.jpg", input_ld_fake, 160, 160, CD)
-    os.remove(temp_path)
+    # os.remove(temp_path)
 
     area = get_masked_area(temp_path)
     x1, y, w, h = area
