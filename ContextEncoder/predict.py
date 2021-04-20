@@ -182,8 +182,8 @@ if __name__ == '__main__':
     Discriminator = Discriminator()
     Discriminator.load_state_dict(
         torch.load("ContextEncoder\model\Discriminator\Discriminator_CelebA_2.pth"))
-    visualize_saliency_map(
-        "ContextEncoder\TestResultForFid\Fake\\1_generated.png", 64, 64, Discriminator)
+    # visualize_saliency_map(
+    #     "ContextEncoder\TestResultForFid\Fake\\1_generated.png", 64, 64, Discriminator)
 
     transform = transforms.Compose([
         transforms.Resize((128, 128)),

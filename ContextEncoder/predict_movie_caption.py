@@ -100,7 +100,7 @@ def visualize_saliency_map(img_path, input_width, input_height, model):
     plt.show()
 
 
-def perdict(Generator, real_image):
+def predict(Generator, real_image):
 
     SavingImage = real_image.clone()
     fake_center = Generator(SavingImage)

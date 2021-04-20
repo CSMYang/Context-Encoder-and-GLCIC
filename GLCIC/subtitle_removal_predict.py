@@ -11,7 +11,7 @@ from detect_subtitle import get_area, generate_mask, get_masked_area, extract_su
 from vanilla_gradient import visualize_saliency_map
 from matplotlib import pyplot as plt
 import numpy as np
-from evaluation import ssim
+from evaluation import ssim, psnr
 import glob
 import cv2
 
@@ -91,12 +91,12 @@ if __name__ == "__main__":
         "model": "GLCIC\pretrained_model_cn",
         "config": "GLCIC\config.json",
         "input_img": "GLCIC\\netflix_2_with_caption.png",  # input img
-        "output_img": "GLCIC\\result1.jpg",  # output img name
+        "output_img": "GLCIC\\result.jpg",  # output img name
         "input_img2": "GLCIC\\netflix_2_with_caption.png",
         "input_dir": "GLCIC\\video_frames",  # input img directory
         "output_dir": "GLCIC\\video",  # output video
-        "video_size": (640, 360), # The size of the frames of the video
-        "fps": 3, # the number of frames per second
+        "video_size": (640, 360),  # The size of the frames of the video
+        "fps": 3,  # the number of frames per second
         "method": True,  # True for the first method, False for the second method
         "img_size": 500,
     }
@@ -150,35 +150,35 @@ if __name__ == "__main__":
         input = torch.cat((x_mask, mask), dim=1)
         output = model(input)
         inpainted = poisson_blend(x_mask, output, mask)
-        imgs = torch.cat((x, x_mask, inpainted), dim=0)
-        # imgs = inpainted.clone()
+        # imgs = torch.cat((x, x_mask, inpainted), dim=0)
+        imgs = inpainted.clone()
         save_image(imgs, args.output_img, nrow=3)
     print('output img was saved as %s.' % args.output_img)
 
     # saliency map
 
-    # x, y, w, h = get_area(temp_path)
-    # while(y+96 > 160):
-    #     y -= 1
-    # while(x+96 > 160):
-    #     x -= 1
-    # area = ((x, y), (96, 96))
-    # hole_area_fake = generate_area((96, 96),
-    #                                (inpainted.shape[3], inpainted.shape[2]))
+    x, y, w, h = get_area(temp_path)
+    while(y+96 > 160):
+        y -= 1
+    while(x+96 > 160):
+        x -= 1
+    area = ((x, y), (96, 96))
+    hole_area_fake = generate_area((96, 96),
+                                   (inpainted.shape[3], inpainted.shape[2]))
 
-    # input_ld_fake = crop(inpainted, area)
-    # CD = ContextDiscriminator(local_input_shape=input_ld_fake[0].shape,
-    #                           global_input_shape=(
-    #                               3, 160, 160),
-    #                           arc='celeba')
-    # CD.load_state_dict(
-    #     state_dict=torch.load("GLCIC\pretrained_model_cd"))
+    input_ld_fake = crop(inpainted, area)
+    CD = ContextDiscriminator(local_input_shape=input_ld_fake[0].shape,
+                              global_input_shape=(
+                                  3, 160, 160),
+                              arc='celeba')
+    CD.load_state_dict(
+        state_dict=torch.load("GLCIC\pretrained_model_cd"))
 
-    # CD = CD.cuda()
-    # plt.imshow(input_ld_fake[0].numpy().astype(np.float32).transpose(1, 2, 0))
-    # plt.show()
-    # visualize_saliency_map("GLCIC\\result.jpg", input_ld_fake, 160, 160, CD)
-    # os.remove(temp_path)
+    CD = CD.cuda()
+    plt.imshow(input_ld_fake[0].numpy().astype(np.float32).transpose(1, 2, 0))
+    plt.show()
+    visualize_saliency_map("GLCIC\\result.jpg", input_ld_fake, 160, 160, CD)
+    os.remove(temp_path)
 
     area = get_masked_area(temp_path)
     x1, y, w, h = area
@@ -194,8 +194,11 @@ if __name__ == "__main__":
     save_image(inpainted[0, :, y: y + h, x1: x1 + w], temp_path, nrow=3)
 
     # ssim
-    image1 = image_convert_shape(inpainted[0, :, y: y + h, x1: x1 + w])
-    image2 = image_convert_shape(x[0, :,  y: y + h, x1: x1 + w])
+    # image1 = image_convert_shape(inpainted[0, :, y: y + h, x1: x1 + w])
+    # image2 = image_convert_shape(x[0, :,  y: y + h, x1: x1 + w])
+
+    image1 = image_convert_shape(inpainted[0])
+    image2 = image_convert_shape(x[0])
     print(ssim(image1, image2))
 
     # =============================================
@@ -203,3 +206,4 @@ if __name__ == "__main__":
     # =============================================
     # make sure you have modify args correctly
     # make_video(args, mpv, model)
+    print(psnr(image1, image2))
