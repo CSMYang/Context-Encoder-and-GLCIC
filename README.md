@@ -23,6 +23,7 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
 
 ## Required pretrained model for GLCIC:
 [pretrained_model_cn](https://github.com/CSMYang/CSC413-Project/blob/main/GLCIC/pretrained_model_cn)
+
 [config.json](https://github.com/CSMYang/CSC413-Project/blob/main/GLCIC/config.json)
 
 ## How to run:
@@ -37,13 +38,42 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
     4. xxx
 
 ### GLCIC:
-    1. xxx
+    1. After you download raw dataset, firstly unzip it. Then, go GLCIC/make_dataset.py
+    and run it directly since we have initialized all inputs.
 
-    2. xxx
+    2. If you want to train again using other hyperparameters, go GLCIC/train.py and
+    modify hyperparameters on args_dict.
        
-    3. xxx
+    3. After you trained the model or used given traiend model, go GLCIC/predict.py to
+    test images.
 
-    4. xxx
+### Arguments
+In GLCIC/subtitle_removal_predict.py:
+* `<gpu>` (required): a boolean representing whether uses the GPU. Default is True.
+* `<data_dir>` (required): path of the dataset directory.
+* `<result_dir>` (required): path of the images to be stored during the training
+* `<data_parallel>` (required): a boolean representing whether the data should be trained in parallel way. Default is True.
+* `<recursive_search>` (required): a boolean representing whether the dataset should be se. Default is True.
+* `<steps_1>` (required): path of the input directory including a set of frames/images
+* `<steps_2>` (required): path of the output directory for generating a video
+* `<steps_3>` (required): the width and height of the input frames/images, should be a tuple of two integers
+* `<snaperiod_1>` (required): the number of frames per second for the output video, should be an int
+* `<snaperiod_2>` (required): a boolean representing the method of generating mask for covering subtitles; True for the first method (a rectangle), False for the second method (subtitle itself)
+* `<snaperiod_3>` (required): the image size for the model input, should be an int or a tuple of two integers
+* `<max_holes>` (required): path of the input directory including a set of frames/images
+* `<hole_min_w>` (required): path of the output directory for generating a video
+* `<hole_max_w>` (required): the width and height of the input frames/images, should be a tuple of two integers
+* `<hole_min_h>` (required): the number of frames per second for the output video, should be an int
+* `<hole_max_h>` (required): a boolean representing the method of generating mask for covering subtitles; True for the first method (a rectangle), False for the second method (subtitle itself)
+* `<cn_input_size>` (required): the image size for the model input, should be an int or a tuple of two integers
+* `<ld_input_size>` (required): path of the input directory including a set of frames/images
+* `<bsize>` (required): path of the output directory for generating a video
+* `<bdivs>` (required): the width and height of the input frames/images, should be a tuple of two integers
+* `<num_test_completions>` (required): the number of frames per second for the output video, should be an int
+* `<mpv>` (required): a boolean representing the method of generating mask for covering subtitles; True for the first method (a rectangle), False for the second method (subtitle itself)
+* `<alhpa>` (required): the image size for the model input, should be an int or a tuple of two integers
+* `<arc>` (required): the image size for the model input, should be an int or a tuple of two integers
+
 
 ### Video Subtitle Removal:
 
@@ -86,7 +116,7 @@ In GLCIC/subtitle_removal_predict.py:
 
 ## References:
 
-For the Context Encoder model, we do modification bascially according to [xxx]().
+For the Context Encoder model, we wrote it based on the [code by the original author](https://github.com/pathak22/context-encoder).
 
 For the GLCIC model, most are from [Otenim](https://github.com/otenim/GLCIC-PyTorch).
 
