@@ -45,8 +45,9 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
     and you can run it directly.
 
 ### visual result
-
+<img src="./Testing Result/GLCIC/model_generation.png">
 <img src="./Testing Result/GLCIC/Second method/1.jpg">
+check the Testing Result folder for more experimental result
 
 ### Arguments
 In GLCIC/subtitle_removal_predict.py:
