@@ -44,6 +44,10 @@ CelebA, please download the dataset from [this link](https://drive.google.com/fi
     each predict.py. The evaluation score including SSIM and PSNR. For the FID score, go fid.py
     and you can run it directly.
 
+### visual result
+
+<img src="./Context-Encoder-and-GLCIC/Testing Result/GLCIC/Second method/1.jpg">
+
 ### Arguments
 In GLCIC/subtitle_removal_predict.py:
 * `<gpu>` (required): a boolean representing whether uses the GPU. Default is True.
