@@ -182,8 +182,8 @@ if __name__ == '__main__':
     Discriminator = Discriminator()
     Discriminator.load_state_dict(
         torch.load("ContextEncoder\model\Discriminator\Discriminator_CelebA_2.pth"))
-    # visualize_saliency_map(
-    #     "ContextEncoder\Result\day1\sample-000099 -001400.png", 64, 64, Discriminator)
+    visualize_saliency_map(
+        "ContextEncoder\TestResultForFid\Fake\\1_generated.png", 64, 64, Discriminator)
 
     transform = transforms.Compose([
         transforms.Resize((128, 128)),
@@ -258,6 +258,9 @@ if __name__ == '__main__':
 
         imageio.imwrite("ContextEncoder\\TestResultForFid\\Real\\{}_real.png".format(i),
                         real_real_image_1.type(torch.uint8).detach())
+
+        imageio.imwrite("ContextEncoder\\TestResultForFid\\Fake\\{}_masked_real.png".format(i),
+                        temp_temp_image_1.type(torch.uint8).detach())
 
         imageio.imwrite("ContextEncoder\\TestResultForFid\\Fake\\{}_generated.png".format(i),
                         result.type(torch.uint8).detach())

@@ -133,7 +133,8 @@ if __name__ == "__main__":
         # image = cv2.imread(img_path)
         # mask = torch.Tensor(generate_mask(image.shape, area))
 
-        mask = center_mask
+        # mask = center_mask
+
         # inpaint
         model.eval()
         with torch.no_grad():
@@ -141,8 +142,8 @@ if __name__ == "__main__":
             input = torch.cat((x_mask, mask), dim=1)
             output = model(input)
             inpainted = poisson_blend(x_mask, output, mask)
-            # imgs = torch.cat((x, x_mask, inpainted), dim=0)
-            imgs = inpainted
+            imgs = torch.cat((x, x_mask, inpainted), dim=0)
+            # imgs = inpainted
             save_image(
                 imgs, "GLCIC\TestResultForFid\\Fake\\{}_generated.png".format(i), nrow=3)
         # print(ssim(result.cpu().detach(), temp_temp_image_1))

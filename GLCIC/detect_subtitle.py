@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # cv2.imshow('image', result)
     # cv2.waitKey()
 
-    img_path = "GLCIC\with caption.PNG"
+    img_path = "GLCIC\\netflix_2_with_caption.png"
     x, y, w, h = get_area(img_path)
     image = cv2.imread(img_path)
     cv2.rectangle(image, (x, y), (x + w, y + h), (36, 255, 12), 3)

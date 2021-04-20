@@ -56,14 +56,24 @@ def calculate_fid(source_img_dir, target_img_dir, shape=(299, 299, 3)):
 if __name__ == '__main__':
     # test
 
-    img_real_dir = "ContextEncoder\TestResultForFid\Real"
-    output_dir = "ContextEncoder\TestResultForFid\Fake"
+    # img_real_dir = "ContextEncoder\TestResultForFid\Real"
+    # output_dir = "ContextEncoder\TestResultForFid\Fake"
+    # fid = calculate_fid(img_real_dir, output_dir)
+    # print('Context Encoder FID (different): %.3f' % fid)
+    # # fid between images1 and images2
+    # # fid = calculate_fid(img_real_dir, img_real_dir)
+    # # print('FID (different): %.3f' % fid)
+    # img_real_dir = "GLCIC\TestResultForFid\Real"
+    # output_dir = "GLCIC\TestResultForFid\Fake"
+    # fid = calculate_fid(img_real_dir, output_dir)
+    # print('GLCIC FID (different): %.3f' % fid)
+
+    img_real_dir = "GLCIC\TestResultForFid\\netflix_real"
+    output_dir = "GLCIC\TestResultForFid\\netflix_first_method"
     fid = calculate_fid(img_real_dir, output_dir)
-    print('Context Encoder FID (different): %.3f' % fid)
-    # fid between images1 and images2
-    # fid = calculate_fid(img_real_dir, img_real_dir)
-    # print('FID (different): %.3f' % fid)
-    img_real_dir = "GLCIC\TestResultForFid\Real"
-    output_dir = "GLCIC\TestResultForFid\Fake"
+    print('GLCIC FID first method(different): %.3f' % fid)
+
+    img_real_dir = "GLCIC\TestResultForFid\\netflix_real"
+    output_dir = "GLCIC\TestResultForFid\\netflix_second_method"
     fid = calculate_fid(img_real_dir, output_dir)
-    print('GLCIC FID (different): %.3f' % fid)
+    print('GLCIC FID Second method(different): %.3f' % fid)
