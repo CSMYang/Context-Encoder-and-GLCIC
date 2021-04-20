@@ -1,26 +1,19 @@
 """
-Do comparison between ContextEncoder and GLCIC
+Calculate Fréchet inception distance (FID) score for the GAN model.
+Do comparison between ContextEncoder and GLCIC.
 """
 import cv2
 import os
 import numpy as np
 import scipy
-# from fid_score.fid_score import FidScore
 from keras.applications.inception_v3 import InceptionV3, preprocess_input
-
-# def calculate_fid(source_img_dir, target_img_dir, num):
-#     """
-#     Calculate FID score.
-#     """
-#     paths = [source_img_dir, target_img_dir]
-#     fid = FidScore(paths, torch.device('cuda:0'), num)
-#     score = fid.calculate_fid_score()
-#     return score
 
 
 def get_images(image_dir, shape):
     """
-    Return a ndarray containing all images from image_dir.
+    :param image_dir: path of input images
+    :param shape: The shape of the resized image (H, W).
+    :return: Return a ndarray containing all images from image_dir.
     """
     images = []
     for image in os.listdir(image_dir):
@@ -32,7 +25,13 @@ def get_images(image_dir, shape):
 
 def calculate_fid(source_img_dir, target_img_dir, shape=(299, 299, 3)):
     """
-    Calculate FID score.
+    :param source_img_dir: path of real image directory
+    :param target_img_dir: path of inpainted image directory
+    :param shape: the shape of the image for InceptionV3. Default: (299, 299, 3)
+    :return: Return the calculated FID score.
+    Note: the number of images in source_img_dir should be the same as the number in target_img_dir,
+    and the number should >= 2.
+    Get idea from:
     https://github.com/mseitzer/pytorch-fid/blob/master/src/pytorch_fid/fid_score.py
     https://machinelearningmastery.com/how-to-implement-the-frechet-inception-distance-fid-from-scratch/
     """
@@ -49,8 +48,8 @@ def calculate_fid(source_img_dir, target_img_dir, shape=(299, 299, 3)):
     if np.iscomplexobj(covmean):
         covmean = covmean.real
     # calculate score
-    score = np.sum((mu1 - mu2)**2.0) + \
-        np.trace(sigma1 + sigma2 - 2.0 * covmean)
+    score = np.sum((mu1 - mu2) ** 2.0) + \
+            np.trace(sigma1 + sigma2 - 2.0 * covmean)
     return score
 
 

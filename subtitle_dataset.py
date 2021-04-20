@@ -1,3 +1,7 @@
+"""
+Download the YouTube video. (no subtitle, so no need to use it)
+Build a set of frames from a video for video subtitle removal.
+"""
 import cv2
 import os
 from tqdm import tqdm
@@ -40,6 +44,11 @@ def download_video(url, dest_dir, sub=True):
 
 def build_dataset(video_path, dest_dir, num, start=0):
     """
+    :param video_path: the path of the video
+    :param dest_dir: the path of image directory for video subtitle removal
+    :param num: the number of frames that need to be generated
+    :param start: the first frame that starts storing. Default: 0
+    We get idea from
     https://www.geeksforgeeks.org/extract-images-from-video-in-python/
     """
 
@@ -54,7 +63,7 @@ def build_dataset(video_path, dest_dir, num, start=0):
 
     pbar = tqdm(num)
     current_frame = 0
-    while pbar.n <= num:
+    while pbar.n < num:
         # reading from frame
         ret, frame = cam.read()
 
