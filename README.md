@@ -86,10 +86,16 @@ In GLCIC/subtitle_removal_predict.py:
 
 ## References:
 
-For the Context Encoder model, we get the idea from xxx. You can check it [here]().
+For the Context Encoder model, we do modification bascially according to [xxx]().
 
-For the GLCIC model, we get the idea from Otenim. You can check it [here](https://github.com/otenim/GLCIC-PyTorch).
+For the GLCIC model, most are from [Otenim](https://github.com/otenim/GLCIC-PyTorch).
 
-For the subtitle removal method 1 in GLCIC/detect_subtitle.py, we get the idea from nathancy's answer. You can check it [here](https://stackoverflow.com/questions/37771263/detect-text-area-in-an-image-using-python-and-opencv).
+GLCIC/detect_subtitle.py:
 
-For the subtitle removal method 2 code in GLCIC/detect_subtitle.py, we get the idea from the blog in programmersought. You can check it [here](https://www.programmersought.com/article/5117975415/).
+For the subtitle removal method 1, we get the idea from [nathancy's answer](https://stackoverflow.com/questions/37771263/detect-text-area-in-an-image-using-python-and-opencv).
+
+For the subtitle removal method 2, we get the idea from the [blog in programmersought](https://www.programmersought.com/article/5117975415/).
+
+fid.py:
+
+For calculating fid, we get the idea from [pytorch-fid source code](https://github.com/mseitzer/pytorch-fid/blob/master/src/pytorch_fid/fid_score.py) and [Jason Brownlee's article](https://machinelearningmastery.com/how-to-implement-the-frechet-inception-distance-fid-from-scratch/).
