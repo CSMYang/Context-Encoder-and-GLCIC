@@ -1,4 +1,4 @@
-# CSC413 Project: Analysis of GAN-based Image Inpainting Model: Context Encoder and GLCIC: Globally and Locally Consistent Image Completion
+# Analysis of GAN-based Image Inpainting Model: Context Encoder and GLCIC: Globally and Locally Consistent Image Completion
 
 Note: For detailed explanation, please see our report.
 
